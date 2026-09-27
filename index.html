@@ -237,83 +237,30 @@
                 firebaseActive = true;
             }
         } catch (e) {
-            console.warn("Firebase no activo, utilizando almacenamiento local.");
+            console.warn("Firebase inactivo, operando en almacenamiento local.");
         }
 
-        function abrirIndexedDB() {
-            return new Promise((resolve, reject) => {
-                const request = indexedDB.open("AlbumHistoriaDB", 2);
-                request.onupgradeneeded = (e) => {
-                    const idb = e.target.result;
-                    if (!idb.objectStoreNames.contains("paginas")) {
-                        idb.createObjectStore("paginas", { keyPath: "id" });
-                    }
-                    if (!idb.objectStoreNames.contains("config")) {
-                        idb.createObjectStore("config", { keyPath: "key" });
-                    }
-                };
-                request.onsuccess = (e) => resolve(e.target.result);
-                request.onerror = (e) => reject(e);
-            });
-        }
-
-        async function guardarLocalIDB(storeName, item) {
+        // Sistema de almacenamiento persistente sin bloqueos
+        function guardarStorageLocal(key, value) {
             try {
-                const idb = await abrirIndexedDB();
-                const tx = idb.transaction(storeName, "readwrite");
-                tx.objectStore(storeName).put(item);
-            } catch (err) {
-                console.warn("Error en IndexedDB, usando localStorage:", err);
-                try {
-                    if (storeName === 'paginas') {
-                        let pages = JSON.parse(localStorage.getItem('album_pages') || '[]');
-                        pages = pages.filter(p => p.id !== item.id);
-                        pages.push(item);
-                        localStorage.setItem('album_pages', JSON.stringify(pages));
-                    } else if (storeName === 'config') {
-                        localStorage.setItem(item.key, item.val);
-                    }
-                } catch(e) {}
+                localStorage.setItem(key, JSON.stringify(value));
+            } catch(e) {
+                console.warn("LocalStorage lleno o deshabilitado.");
             }
         }
 
-        async function obtenerTodoLocalIDB(storeName) {
+        function obtenerStorageLocal(key) {
             try {
-                const idb = await abrirIndexedDB();
-                return new Promise((resolve) => {
-                    const tx = idb.transaction(storeName, "readonly");
-                    const req = tx.objectStore(storeName).getAll();
-                    req.onsuccess = () => resolve(req.result || []);
-                    req.onerror = () => resolve(obtenerFallbackLocalStorage(storeName));
-                });
-            } catch (err) {
-                return obtenerFallbackLocalStorage(storeName);
+                const data = localStorage.getItem(key);
+                return data ? JSON.parse(data) : null;
+            } catch(e) {
+                return null;
             }
         }
 
-        function obtenerFallbackLocalStorage(storeName) {
-            if (storeName === 'paginas') {
-                try { return JSON.parse(localStorage.getItem('album_pages') || '[]'); } catch(e) { return []; }
-            }
-            return [];
-        }
-
-        async function obtenerItemLocalIDB(storeName, key) {
-            try {
-                const idb = await abrirIndexedDB();
-                return new Promise((resolve) => {
-                    const tx = idb.transaction(storeName, "readonly");
-                    const req = tx.objectStore(storeName).get(key);
-                    req.onsuccess = () => resolve(req.result ? req.result.val : localStorage.getItem(key));
-                    req.onerror = () => resolve(localStorage.getItem(key));
-                });
-            } catch (err) {
-                return localStorage.getItem(key);
-            }
-        }
-
-        function comprimirImagen(file, maxWidth = 800, quality = 0.7) {
-            return new Promise((resolve, reject) => {
+        // Compresión optimizada para móviles
+        function comprimirImagenRapido(file, maxWidth = 650, quality = 0.6) {
+            return new Promise((resolve) => {
                 const reader = new FileReader();
                 reader.onload = (e) => {
                     const img = new Image();
@@ -334,10 +281,10 @@
 
                         resolve(canvas.toDataURL('image/jpeg', quality));
                     };
-                    img.onerror = () => reject(new Error("No se pudo cargar la imagen seleccionada."));
+                    img.onerror = () => resolve(e.target.result); // Fallback directo
                     img.src = e.target.result;
                 };
-                reader.onerror = () => reject(new Error("Error al leer el archivo local."));
+                reader.onerror = () => resolve(null);
                 reader.readAsDataURL(file);
             });
         }
@@ -379,7 +326,7 @@
 
         // PORTADA
         async function cargarFotoPortada() {
-            const localCover = await obtenerItemLocalIDB('config', 'album_cover_url');
+            const localCover = obtenerStorageLocal('album_cover_url');
             if (localCover) {
                 fijarFotoPortada(localCover);
             }
@@ -388,7 +335,7 @@
                 db.collection("config").doc("cover").get().then((doc) => {
                     if (doc.exists && doc.data().url) {
                         fijarFotoPortada(doc.data().url);
-                        guardarLocalIDB('config', { key: 'album_cover_url', val: doc.data().url });
+                        guardarStorageLocal('album_cover_url', doc.data().url);
                     }
                 }).catch(() => {});
             }
@@ -406,28 +353,26 @@
             const file = e.target.files[0];
             if (!file) return;
 
-            try {
-                const compressedBase64 = await comprimirImagen(file, 800, 0.75);
+            const compressedBase64 = await comprimirImagenRapido(file, 700, 0.7);
+            if (compressedBase64) {
                 fijarFotoPortada(compressedBase64);
-                await guardarLocalIDB('config', { key: 'album_cover_url', val: compressedBase64 });
+                guardarStorageLocal('album_cover_url', compressedBase64);
+            }
 
-                if (firebaseActive && storage) {
-                    try {
-                        const ref = storage.ref(`portada/foto_portada_fija`);
-                        await ref.put(file);
-                        const firebaseUrl = await ref.getDownloadURL();
-                        await db.collection("config").doc("cover").set({ url: firebaseUrl });
-                        guardarLocalIDB('config', { key: 'album_cover_url', val: firebaseUrl });
-                    } catch (err) {}
-                }
-            } catch(err) {
-                alert("Ocurrió un error al cargar la portada.");
+            if (firebaseActive && storage) {
+                try {
+                    const ref = storage.ref(`portada/foto_portada_fija`);
+                    await ref.put(file);
+                    const firebaseUrl = await ref.getDownloadURL();
+                    await db.collection("config").doc("cover").set({ url: firebaseUrl });
+                    guardarStorageLocal('album_cover_url', firebaseUrl);
+                } catch (err) {}
             }
         });
 
         // MÚSICA
         async function cargarMusica() {
-            const localMusic = await obtenerItemLocalIDB('config', 'album_music_url');
+            const localMusic = obtenerStorageLocal('album_music_url');
             if (localMusic) {
                 fijarCancion(localMusic);
             } else {
@@ -438,7 +383,7 @@
                 db.collection("config").doc("music").get().then((doc) => {
                     if (doc.exists && doc.data().url) {
                         fijarCancion(doc.data().url);
-                        guardarLocalIDB('config', { key: 'album_music_url', val: doc.data().url });
+                        guardarStorageLocal('album_music_url', doc.data().url);
                     }
                 }).catch(() => {});
             }
@@ -458,7 +403,7 @@
                 const audioUrl = event.target.result;
 
                 fijarCancion(audioUrl);
-                await guardarLocalIDB('config', { key: 'album_music_url', val: audioUrl });
+                guardarStorageLocal('album_music_url', audioUrl);
 
                 bgMusic.play().then(() => {
                     isMuted = false;
@@ -471,7 +416,7 @@
                         await ref.put(file);
                         const firebaseUrl = await ref.getDownloadURL();
                         await db.collection("config").doc("music").set({ url: firebaseUrl });
-                        guardarLocalIDB('config', { key: 'album_music_url', val: firebaseUrl });
+                        guardarStorageLocal('album_music_url', firebaseUrl);
                     } catch (err) {}
                 }
             };
@@ -499,9 +444,9 @@
         }
 
         // PÁGINAS Y LIBRO
-        async function cargarPaginas() {
-            const localPages = await obtenerTodoLocalIDB('paginas');
-            if (localPages && localPages.length > 0) {
+        function cargarPaginas() {
+            const localPages = obtenerStorageLocal('album_pages_list') || [];
+            if (localPages.length > 0) {
                 albumPages = localPages.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
                 if (currentSpreadIndex > 0) renderizarLibro();
             }
@@ -514,6 +459,7 @@
                     });
                     if (netPages.length > 0) {
                         albumPages = netPages;
+                        guardarStorageLocal('album_pages_list', albumPages);
                         if (currentSpreadIndex > 0) renderizarLibro();
                     }
                 }, () => {});
@@ -594,7 +540,7 @@
             `;
         }
 
-        // VENTANA EMERGENTE (MODAL)
+        // MODAL Y GUARDADO DIRECTO
         const pageModal = document.getElementById('page-modal');
         
         function abrirModalAgregar() {
@@ -609,7 +555,7 @@
             e.preventDefault();
             const btnSave = document.getElementById('btn-save-page');
             btnSave.disabled = true;
-            btnSave.innerText = "Guardando...";
+            btnSave.innerText = "Procesando...";
 
             const fileInput = document.getElementById('input-page-image');
             const captionInput = document.getElementById('input-page-caption');
@@ -620,14 +566,19 @@
             const font = fontInput.value;
 
             if (!file) {
-                alert("Por favor selecciona una imagen.");
+                alert("Por favor selecciona una foto.");
                 btnSave.disabled = false;
                 btnSave.innerText = "Guardar Recuerdo";
                 return;
             }
 
             try {
-                const compressedImage = await comprimirImagen(file, 800, 0.7);
+                // Compresión ultra rápida
+                const compressedImage = await comprimirImagenRapido(file, 650, 0.6);
+
+                if (!compressedImage) {
+                    throw new Error("No se pudo procesar la imagen.");
+                }
 
                 const newPage = {
                     id: Date.now().toString(),
@@ -637,8 +588,9 @@
                     timestamp: Date.now()
                 };
 
+                // Actualizar pantalla inmediatamente
                 albumPages.push(newPage);
-                await guardarLocalIDB('paginas', newPage);
+                guardarStorageLocal('album_pages_list', albumPages);
 
                 if (currentSpreadIndex === 0) {
                     currentSpreadIndex = Math.ceil(albumPages.length / 2) || 1;
@@ -646,25 +598,30 @@
                 
                 renderizarLibro();
 
-                if (firebaseActive && storage && db) {
-                    try {
-                        const ref = storage.ref(`fotos/${Date.now()}_${file.name}`);
-                        await ref.put(file);
-                        const url = await ref.getDownloadURL();
-
-                        await db.collection("paginas").add({
-                            imageUrl: url,
-                            caption: caption,
-                            font: font,
-                            timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                        });
-                    } catch (firebaseErr) {}
-                }
-
+                // Cierre de ventana y reseteo
                 document.getElementById('form-add-page').reset();
                 pageModal.classList.add('hidden');
+
+                // Subida en segundo plano si Firebase está disponible
+                if (firebaseActive && storage && db) {
+                    (async () => {
+                        try {
+                            const ref = storage.ref(`fotos/${Date.now()}_${file.name}`);
+                            await ref.put(file);
+                            const url = await ref.getDownloadURL();
+
+                            await db.collection("paginas").add({
+                                imageUrl: url,
+                                caption: caption,
+                                font: font,
+                                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                            });
+                        } catch (e) {}
+                    })();
+                }
+
             } catch (error) {
-                alert("Error al guardar la página: " + error.message);
+                alert("Hubo un detalle al guardar: " + error.message);
             } finally {
                 btnSave.disabled = false;
                 btnSave.innerText = "Guardar Recuerdo";
