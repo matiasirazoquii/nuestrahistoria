@@ -253,7 +253,7 @@
             storage = firebase.storage();
             firebaseActive = true;
         } catch (e) {
-            console.warn("Firebase no activo, utilizando modo de respaldo local.", e);
+            console.warn("Firebase no activo, utilizando almacenamiento local de respaldo.", e);
         }
 
         let albumPages = [];
@@ -276,8 +276,10 @@
 
         window.addEventListener('DOMContentLoaded', () => {
             cargarFotoPortada();
-            cargarMúsica();
+            cargarMusica();
             cargarPaginas();
+
+            // Permite activar la música al primer toque/clic en cualquier lado de la pantalla
             document.body.addEventListener('click', iniciarAudioAlContacto, { once: true });
         });
 
@@ -285,31 +287,36 @@
             if (bgMusic.src && isMuted) {
                 bgMusic.play().then(() => {
                     isMuted = false;
-                    actualizarIconoMúsica();
+                    actualizarIconoMusica();
                 }).catch(() => {});
             }
         }
 
-        // --- MANEJO DE FOTO DE PORTADA FIJA E INMODIFICABLE ---
+        // --- MANEJO DE PORTADA (LOCAL + NUBE) ---
         function cargarFotoPortada() {
+            // 1. Carga inmediata desde LocalStorage si existe
+            const localCover = localStorage.getItem('album_cover_url');
+            if (localCover) {
+                fijarFotoPortada(localCover);
+            }
+
+            // 2. Intenta actualizar desde Firebase si está activo
             if (firebaseActive) {
                 db.collection("config").doc("cover").get().then((doc) => {
                     if (doc.exists && doc.data().url) {
                         fijarFotoPortada(doc.data().url);
+                        localStorage.setItem('album_cover_url', doc.data().url);
                     }
-                }).catch(() => {});
-            } else {
-                const localCover = localStorage.getItem('album_cover_url');
-                if (localCover) {
-                    fijarFotoPortada(localCover);
-                }
+                }).catch((err) => {
+                    console.log("Cargando portada desde respaldo local:", err);
+                });
             }
         }
 
         function fijarFotoPortada(url) {
             coverPhoto.src = url;
             coverPhoto.classList.remove('hidden');
-            coverUploadContainer.style.display = 'none'; // Ocultar bloque de subida para siempre
+            coverUploadContainer.style.display = 'none';
         }
 
         coverUploadContainer.addEventListener('click', () => coverFileInput.click());
@@ -321,7 +328,10 @@
             const reader = new FileReader();
             reader.onload = async (event) => {
                 const base64Url = event.target.result;
+                
+                // Fijar inmediatamente en pantalla y guardar en LocalStorage
                 fijarFotoPortada(base64Url);
+                localStorage.setItem('album_cover_url', base64Url);
 
                 if (firebaseActive) {
                     try {
@@ -329,46 +339,41 @@
                         await ref.put(file);
                         const firebaseUrl = await ref.getDownloadURL();
                         await db.collection("config").doc("cover").set({ url: firebaseUrl });
-                        fijarFotoPortada(firebaseUrl);
-                        alert("¡Foto de portada subida y fijada permanentemente!");
+                        localStorage.setItem('album_cover_url', firebaseUrl);
                     } catch (err) {
-                        console.warn("No se pudo subir a la nube, se guardó localmente:", err);
-                        localStorage.setItem('album_cover_url', base64Url);
-                        alert("Foto de portada fijada localmente.");
+                        console.warn("Se mantendrá el respaldo local para la portada:", err);
                     }
-                } else {
-                    localStorage.setItem('album_cover_url', base64Url);
-                    alert("¡Foto de portada fijada permanentemente!");
                 }
             };
             reader.readAsDataURL(file);
         });
 
-        // --- MANEJO DE MÚSICA MP3 FIJA E INMODIFICABLE ---
-        function cargarMúsica() {
+        // --- MANEJO DE MÚSICA MP3 (LOCAL + NUBE) ---
+        function cargarMusica() {
+            // 1. Carga inmediata desde LocalStorage si existe
+            const localMusic = localStorage.getItem('album_music_url');
+            if (localMusic) {
+                fijarCancion(localMusic);
+            } else {
+                musicUploadBox.classList.remove('hidden');
+            }
+
+            // 2. Revisa en Firebase
             if (firebaseActive) {
                 db.collection("config").doc("music").get().then((doc) => {
                     if (doc.exists && doc.data().url) {
                         fijarCancion(doc.data().url);
-                    } else {
-                        musicUploadBox.classList.remove('hidden');
+                        localStorage.setItem('album_music_url', doc.data().url);
                     }
-                }).catch(() => {
-                    musicUploadBox.classList.remove('hidden');
+                }).catch((err) => {
+                    console.log("Cargando música desde respaldo local:", err);
                 });
-            } else {
-                const localMusic = localStorage.getItem('album_music_url');
-                if (localMusic) {
-                    fijarCancion(localMusic);
-                } else {
-                    musicUploadBox.classList.remove('hidden');
-                }
             }
         }
 
         function fijarCancion(url) {
             bgMusic.src = url;
-            musicUploadBox.style.display = 'none'; // Ocultar y bloquear botón para siempre
+            musicUploadBox.style.display = 'none';
         }
 
         musicFileInput.addEventListener('change', (e) => {
@@ -378,12 +383,14 @@
             const reader = new FileReader();
             reader.onload = async (event) => {
                 const audioUrl = event.target.result;
-                
-                // Activar la reproducción de inmediato
+
+                // Reproducir de inmediato y guardar en local
                 fijarCancion(audioUrl);
+                localStorage.setItem('album_music_url', audioUrl);
+
                 bgMusic.play().then(() => {
                     isMuted = false;
-                    actualizarIconoMúsica();
+                    actualizarIconoMusica();
                 }).catch(() => {});
 
                 if (firebaseActive) {
@@ -392,16 +399,10 @@
                         await ref.put(file);
                         const firebaseUrl = await ref.getDownloadURL();
                         await db.collection("config").doc("music").set({ url: firebaseUrl });
-                        fijarCancion(firebaseUrl);
-                        alert("¡Canción MP3 subida y fijada permanentemente a la nube!");
+                        localStorage.setItem('album_music_url', firebaseUrl);
                     } catch (err) {
-                        console.warn("Guardado local de audio por fallas de storage:", err);
-                        localStorage.setItem('album_music_url', audioUrl);
-                        alert("¡Canción MP3 fijada!");
+                        console.warn("Se mantendrá el respaldo local para la música:", err);
                     }
-                } else {
-                    localStorage.setItem('album_music_url', audioUrl);
-                    alert("¡Canción MP3 fijada!");
                 }
             };
             reader.readAsDataURL(file);
@@ -417,10 +418,10 @@
                 bgMusic.pause();
                 isMuted = true;
             }
-            actualizarIconoMúsica();
+            actualizarIconoMusica();
         });
 
-        function actualizarIconoMúsica() {
+        function actualizarIconoMusica() {
             if (isMuted || bgMusic.paused) {
                 muteIcon.className = "fa-solid fa-volume-xmark text-lg text-brand-pink";
             } else {
@@ -430,18 +431,21 @@
 
         // --- CÁRGA Y RENDERIZADO DE PÁGINAS DEL ÁLBUM ---
         function cargarPaginas() {
+            const localData = localStorage.getItem('album_pages');
+            if (localData) {
+                albumPages = JSON.parse(localData);
+                if (currentSpreadIndex > 0) renderizarLibro();
+            }
+
             if (firebaseActive) {
                 db.collection("paginas").orderBy("timestamp", "asc").onSnapshot((snapshot) => {
                     albumPages = [];
                     snapshot.forEach((doc) => {
                         albumPages.push({ id: doc.id, ...doc.data() });
                     });
+                    localStorage.setItem('album_pages', JSON.stringify(albumPages));
                     if (currentSpreadIndex > 0) renderizarLibro();
-                });
-            } else {
-                const localData = localStorage.getItem('album_pages');
-                albumPages = localData ? JSON.parse(localData) : [];
-                if (currentSpreadIndex > 0) renderizarLibro();
+                }, () => {});
             }
         }
 
@@ -452,6 +456,14 @@
             navControls.classList.remove('hidden');
             currentSpreadIndex = 1;
             renderizarLibro();
+            
+            // Intenta reproducir al abrir si está pausado
+            if (bgMusic.src && bgMusic.paused) {
+                bgMusic.play().then(() => {
+                    isMuted = false;
+                    actualizarIconoMusica();
+                }).catch(() => {});
+            }
         });
 
         document.getElementById('btn-close-book').addEventListener('click', () => {
@@ -527,35 +539,39 @@
 
             if (!file) return;
 
-            if (firebaseActive) {
-                try {
-                    const ref = storage.ref(`fotos/${Date.now()}_${file.name}`);
-                    await ref.put(file);
-                    const url = await ref.getDownloadURL();
-
-                    await db.collection("paginas").add({
-                        imageUrl: url,
-                        caption: caption,
-                        font: font,
-                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-                } catch (err) {
-                    alert("Error al guardar foto: " + err.message);
-                }
-            } else {
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                    albumPages.push({
-                        id: Date.now().toString(),
-                        imageUrl: event.target.result,
-                        caption: caption,
-                        font: font
-                    });
-                    localStorage.setItem('album_pages', JSON.stringify(albumPages));
-                    renderizarLibro();
+            const reader = new FileReader();
+            reader.onload = async (event) => {
+                const localImg = event.target.result;
+                
+                const newPage = {
+                    id: Date.now().toString(),
+                    imageUrl: localImg,
+                    caption: caption,
+                    font: font
                 };
-                reader.readAsDataURL(file);
-            }
+
+                albumPages.push(newPage);
+                localStorage.setItem('album_pages', JSON.stringify(albumPages));
+                renderizarLibro();
+
+                if (firebaseActive) {
+                    try {
+                        const ref = storage.ref(`fotos/${Date.now()}_${file.name}`);
+                        await ref.put(file);
+                        const url = await ref.getDownloadURL();
+
+                        await db.collection("paginas").add({
+                            imageUrl: url,
+                            caption: caption,
+                            font: font,
+                            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                    } catch (err) {
+                        console.warn("Foto guardada en modo local:", err);
+                    }
+                }
+            };
+            reader.readAsDataURL(file);
 
             document.getElementById('form-add-page').reset();
             pageModal.classList.add('hidden');
