@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nuestro Libro de Amor</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Montserrat:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&display=swap" rel="stylesheet">
+    <!-- Canvas Confetti for celebrations -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <!-- Firebase SDKs (Compat version for browser direct HTML execution) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'rose-gold': '#B76E79',
+                        'dusty-rose': '#D8A7B1',
+                        'soft-pink': '#FFF0F3',
+                        'deep-pink': '#FF4D6D',
+                        'romantic-pink': '#FF8FA3',
+                        'dark-black': '#121212',
+                        'charcoal': '#1E1E24',
+                        'velvet-black': '#0A0A0C',
+                    },
+                    fontFamily: {
+                        'serif-title': ['Playfair Display', 'serif'],
+                        'script': ['Great Vibes', 'cursive'],
+                        'body': ['Montserrat', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Textura estilo papel de libro */
+        .paper-texture {
+            background-color: #fdfbf7;
+            background-image: radial-gradient(#e0d7cd 0.5px, transparent 0.5px), radial-gradient(#e0d7cd 0.5px, #fdfbf7 0.5px);
+            background-size: 20px 20px;
+            background-position: 0 0, 10px 10px;
+        }
+
+        /* Sombra central del lomo del libro */
+        .book-spine-shadow {
+            box-shadow: inset 20px 0 30px -10px rgba(0,0,0,0.25), inset -20px 0 30px -10px rgba(0,0,0,0.25);
+        }
+
+        .spine-middle-shadow {
+            background: linear-gradient(to right, rgba(0,0,0,0.18) 0%, rgba(0,0,0,0.05) 40%, rgba(0,0,0,0.0) 50%, rgba(0,0,0,0.05) 60%, rgba(0,0,0,0.18) 100%);
+        }
+
+        /* Estilo de la portada negra y rosada */
+        .cover-texture {
+            background: linear-gradient(135deg, #121212 0%, #1a1a24 50%, #0d0d11 100%);
+            border: 3px solid #B76E79;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6), inset 0 0 15px rgba(183, 110, 121, 0.3);
+        }
+
+        /* Animación de entrada deslizante para la portada */
+        @keyframes slideInCover {
+            0% {
+                opacity: 0;
+                transform: translateY(60px) scale(0.92);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .animate-cover-slide {
+            animation: slideInCover 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        /* Efecto de marco de cinta de foto */
+        .photo-tape {
+            position: absolute;
+            width: 80px;
+            height: 25px;
+            background-color: rgba(255, 240, 243, 0.6);
+            backdrop-filter: blur(2px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            transform: rotate(-5deg);
+            z-index: 10;
+        }
+
+        .photo-tape-right {
+            transform: rotate(6deg);
+        }
+
+        .perspective-1000 {
+            perspective: 2000px;
+        }
+
+        .page-shadow-left {
+            box-shadow: -10px 0 25px rgba(0,0,0,0.15);
+        }
+
+        .page-shadow-right {
+            box-shadow: 10px 0 25px rgba(0,0,0,0.15);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e1e24;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #b76e79;
+            border-radius: 4px;
+        }
+
+        @keyframes pulse-heart {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.15); }
+        }
+        .animate-heart {
+            animation: pulse-heart 2s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="bg-velvet-black text-gray-100 font-body min-h-screen flex flex-col justify-between overflow-x-hidden selection:bg-rose-gold selection:text-white">
+
+    <!-- Header Controls Bar -->
+    <header class="w-full bg-charcoal/90 backdrop-blur-md border-b border-rose-gold/30 px-4 py-3 sticky top-0 z-40 shadow-lg">
+        <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+                <i class="fa-solid font-bold text-2xl text-deep-pink fa-heart animate-heart"></i>
+                <h1 class="font-serif-title font-bold text-lg sm:text-xl text-rose-gold tracking-wider">
+                    Nuestro Libro de Amor
+                </h1>
+            </div>
+
+            <!-- Status Indicator -->
+            <div class="flex items-center gap-2 text-xs text-dusty-rose bg-dark-black/60 px-3 py-1 rounded-full border border-rose-gold/20 cursor-pointer" onclick="openRulesModal()" title="Clic para ver cómo configurar las reglas de Firebase">
+                <span id="db-status-dot" class="w-2 h-2 rounded-full bg-yellow-500"></span>
+                <span id="db-status-text">Conectando a Firebase...</span>
+                <i class="fa-solid fa-circle-info text-rose-gold/70 text-xs ml-1"></i>
+            </div>
+
+            <!-- Global Action Buttons -->
+            <div class="flex items-center gap-2 sm:gap-3 flex-wrap">
+                <button id="btn-edit-cover" onclick="openCoverModal()" class="px-3 py-1.5 text-xs sm:text-sm bg-charcoal hover:bg-rose-gold/20 text-rose-gold border border-rose-gold/50 rounded-full transition-all duration-300 flex items-center gap-1.5">
+                    <i class="fa-solid fa-pen-to-square"></i> <span class="hidden sm:inline">Editar</span> Portada
+                </button>
+                <button id="btn-add-page" onclick="openPageModal(null)" class="px-3 py-1.5 text-xs sm:text-sm bg-rose-gold hover:bg-rose-gold/80 text-white font-medium rounded-full transition-all duration-300 shadow-md flex items-center gap-1.5">
+                    <i class="fa-solid fa-plus"></i> Subir <span class="hidden sm:inline">Foto</span>
+                </button>
+                <button id="btn-slideshow" onclick="toggleSlideshow()" class="px-3 py-1.5 text-xs sm:text-sm bg-deep-pink hover:bg-deep-pink/80 text-white font-medium rounded-full transition-all duration-300 shadow-md flex items-center gap-1.5">
+                    <i class="fa-solid fa-play" id="slideshow-icon"></i> <span id="slideshow-text">Presentación</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Book View Container -->
+    <main class="flex-grow flex items-center justify-center p-2 sm:p-6 my-2 perspective-1000">
+        <div id="book-viewport" class="relative w-full max-w-5xl aspect-[4/3] sm:aspect-[16/10] md:aspect-[16/9] max-h-[80vh] flex items-center justify-center transition-all duration-500">
+            
+            <!-- Dynamic Album Pages Container -->
+            <div id="album-book" class="w-full h-full relative rounded-2xl transition-all duration-700 shadow-2xl flex">
+                <!-- Pages generated via JavaScript -->
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Navigation Bar -->
+    <footer class="w-full bg-charcoal/90 backdrop-blur-md border-t border-rose-gold/30 px-4 py-3 z-30">
+        <div class="max-w-4xl mx-auto flex items-center justify-between">
+            <button id="btn-prev" onclick="prevPage()" class="px-4 py-2 bg-dark-black hover:bg-rose-gold/20 text-rose-gold rounded-full border border-rose-gold/40 transition-all flex items-center gap-2 disabled:opacity-30 disabled:cursor-not-allowed">
+                <i class="fa-solid fa-chevron-left"></i> <span class="hidden sm:inline">Anterior</span>
+            </button>
+
+            <div class="flex items-center gap-3">
+                <span id="page-indicator" class="font-serif-title text-sm sm:text-base text-dusty-rose font-medium">
+                    Portada
+                </span>
+                <span class="text-xs text-gray-400">|</span>
+                <div id="page-dots" class="flex gap-1.5 overflow-x-auto max-w-[150px] sm:max-w-[300px] py-1">
+                    <!-- Dots dynamically created -->
+                </div>
+            </div>
+
+            <button id="btn-next" onclick="nextPage()" class="px-4 py-2 bg-dark-black hover:bg-rose-gold/20 text-rose-gold rounded-full border border-rose-gold/40 transition-all flex items-center gap-2 disabled:opacity-30 disabled:cursor-not-allowed">
+                <span class="hidden sm:inline">Siguiente</span> <i class="fa-solid fa-chevron-right"></i>
+            </button>
+        </div>
+    </footer>
+
+    <!-- Cover Edit Modal -->
+    <div id="cover-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-charcoal border border-rose-gold/50 rounded-2xl max-w-md w-full p-6 shadow-2xl relative text-gray-200">
+            <button onclick="closeCoverModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+            <h2 class="font-serif-title text-xl text-rose-gold font-bold mb-4 flex items-center gap-2">
+                <i class="fa-solid fa-bookmark text-deep-pink"></i> Personalizar Portada
+            </h2>
+
+            <div class="space-y-4 text-sm">
+                <div>
+                    <label class="block text-xs uppercase font-semibold text-gray-400 mb-1">Título del Libro</label>
+                    <input type="text" id="input-cover-title" class="w-full bg-dark-black border border-gray-700 rounded-lg p-2.5 text-white focus:border-rose-gold focus:outline-none" placeholder="Ej. Nuestra Historia en fotos">
+                </div>
+                <div>
+                    <label class="block text-xs uppercase font-semibold text-gray-400 mb-1">Subtítulo / Dedicatoria</label>
+                    <input type="text" id="input-cover-names" class="w-full bg-dark-black border border-gray-700 rounded-lg p-2.5 text-white focus:border-rose-gold focus:outline-none" placeholder="Ej. De parte del amor de tu vida...">
+                </div>
+                <div>
+                    <label class="block text-xs uppercase font-semibold text-gray-400 mb-1">Posdata / Frase Final</label>
+                    <input type="text" id="input-cover-date" class="w-full bg-dark-black border border-gray-700 rounded-lg p-2.5 text-white focus:border-rose-gold focus:outline-none" placeholder="Ej. Posdata: mi amor por vos es más grande...">
+                </div>
+                <div class="bg-dark-black/60 p-3 rounded-lg border border-rose-gold/30 flex items-center gap-2.5 text-xs text-rose-gold">
+                    <i class="fa-solid fa-lock text-deep-pink text-sm"></i>
+                    <span>La foto de portada está fijada permanentemente con tu foto especial ❤️</span>
+                </div>
+            </div>
+
+    <!-- Firebase Rules Help Modal -->
+    <div id="rules-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-charcoal border border-rose-gold/50 rounded-2xl max-w-md w-full p-6 shadow-2xl relative text-gray-200">
+            <button onclick="closeRulesModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+            <h2 class="font-serif-title text-xl text-rose-gold font-bold mb-3 flex items-center gap-2">
+                <i class="fa-solid fa-shield-halved text-deep-pink"></i> Permisos de Firebase
+            </h2>
+            <p class="text-xs text-gray-300 leading-relaxed mb-3">
+                Para permitir sincronización en la nube entre dispositivos, publica esta regla en <strong class="text-white">Firebase Console</strong> &gt; <strong class="text-white">Firestore Database</strong> &gt; <strong class="text-white">Reglas</strong>:
+            </p>
+
+            <div class="relative group mb-3">
+                <pre id="firestore-rules-text" class="bg-dark-black p-3 rounded-lg text-[11px] text-green-400 font-mono border border-gray-800 overflow-x-auto">rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}</pre>
+                <button onclick="copyRulesToClipboard()" class="mt-2 w-full py-1.5 bg-rose-gold/20 hover:bg-rose-gold/40 text-rose-gold border border-rose-gold/40 rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-copy"></i> <span id="copy-btn-text">Copiar Código de Reglas</span>
+                </button>
+            </div>
+
+            <!-- Warning about translation error -->
+            <div class="bg-red-950/40 border border-red-500/30 rounded-lg p-2.5 mb-3 text-[11px] text-red-200 flex items-start gap-2">
+                <i class="fa-solid fa-triangle-exclamation text-red-400 mt-0.5 shrink-0"></i>
+                <span><strong>¡Atención!</strong> Si usas traductor de navegador, no dejes que traduzca <code>rules_version</code> a <code>versión</code> con tilde 'ó', ya que Firebase dará error de sintaxis.</span>
+            </div>
+
+            <p class="text-xs text-gray-400 mb-4">
+                <i class="fa-solid fa-circle-check text-green-400 mr-1"></i> Mientras tanto, tus cambios se guardarán localmente en tu navegador.
+            </p>
+            <button onclick="closeRulesModal()" class="w-full py-2 bg-rose-gold text-white rounded-lg text-xs font-semibold hover:bg-rose-gold/80">Entendido</button>
+        </div>
+    </div>
+
+    <script>
+        // FIREBASE CONFIGURATION PROVIDED BY USER
+        const firebaseConfig = {
+            apiKey: "AIzaSyDsFE-6SKRH00CQXFdZOApCS-V8sEJ5Krw",
+            authDomain: "album-nuestra-historia.firebaseapp.com",
+            projectId: "album-nuestra-historia",
+            storageBucket: "album-nuestra-historia.firebasestorage.app",
+            messagingSenderId: "303479801921",
+            appId: "1:303479801921:web:93e3fb77e769a805635ec0"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const storage = firebase.storage();
+
+        let useLocalStorageFallback = false;
+
+        // Application State
+        const FIXED_COVER_PHOTO = "input_file_0.png";
+
+        let albumData = {
+            cover: {
+                title: "Nuestra historia en fotos",
+                names: "De parte del amor de tu vida con muchísimo amor",
+                date: "Posdata: mi amor por vos es más grande que el universo",
+                photoUrl: FIXED_COVER_PHOTO
+            },
+            pages: []
+        };
+
+        let currentSpread = 0; // 0 = Cover
+        let editingPageIndex = null;
+        let slideshowInterval = null;
+
+        // Initialize app & Listen to Firebase realtime database changes
+        window.onload = function() {
+            loadLocalBackup();
+            initFirebaseListeners();
+        };
+
+        function updateStatusUI(status, text) {
+            const dot = document.getElementById('db-status-dot');
+            const statusText = document.getElementById('db-status-text');
+            if (dot && statusText) {
+                if (status === 'connected') {
+                    dot.className = 'w-2 h-2 rounded-full bg-green-500 animate-pulse';
+                } else if (status === 'local') {
+                    dot.className = 'w-2 h-2 rounded-full bg-orange-400';
+                } else {
+                    dot.className = 'w-2 h-2 rounded-full bg-yellow-500';
+                }
+                statusText.textContent = text;
+            }
+        }
+
+        function loadLocalBackup() {
+            try {
+                const saved = localStorage.getItem('album_local_backup');
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    if (parsed.cover) albumData.cover = { ...albumData.cover, ...parsed.cover, photoUrl: FIXED_COVER_PHOTO };
+                    if (parsed.pages && Array.isArray(parsed.pages)) albumData.pages = parsed.pages;
+                }
+            } catch (e) {
+                console.warn("Error leyendo respaldo local:", e);
+            }
+        }
+
+        function saveLocalBackup() {
+            try {
+                albumData.cover.photoUrl = FIXED_COVER_PHOTO;
+                localStorage.setItem('album_local_backup', JSON.stringify(albumData));
+            } catch (e) {
+                console.warn("No se pudo guardar respaldo local:", e);
+            }
+        }
+
+        function enableLocalStorageFallback(reason) {
+            useLocalStorageFallback = true;
+            updateStatusUI('local', "Modo Local (Clic para activar Nube)");
+            renderAlbum();
+            updateNavigation();
+        }
+
+        function openRulesModal() {
+            document.getElementById('rules-modal').classList.remove('hidden');
+        }
+
+        function closeRulesModal() {
+            document.getElementById('rules-modal').classList.add('hidden');
+        }
+
+        function copyRulesToClipboard() {
+            const rulesText = `rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}`;
+            const tempInput = document.createElement("textarea");
+            tempInput.value = rulesText;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand("copy");
+            document.body.removeChild(tempInput);
+
+            const btnText = document.getElementById('copy-btn-text');
+            if (btnText) {
+                btnText.textContent = "¡Copiado al portapapeles!";
+                setTimeout(() => {
+                    btnText.textContent = "Copiar Código de Reglas";
+                }, 2500);
+            }
+        }
+
+        function initFirebaseListeners() {
+            updateStatusUI('connecting', "Conectando...");
+
+            // 1. Listen to Cover config in Firestore
+            db.collection("config").doc("cover").onSnapshot((doc) => {
+                if (doc.exists) {
+                    albumData.cover = { ...albumData.cover, ...doc.data(), photoUrl: FIXED_COVER_PHOTO };
+                    saveLocalBackup();
+                    renderAlbum();
+                }
+            }, (error) => {
+                console.warn("Cover snapshot error:", error);
+                enableLocalStorageFallback("Permisos requeridos en Firebase");
+            });
+
+            // 2. Listen to Pages collection ordered by timestamp
+            db.collection("paginas").orderBy("createdAt", "asc").onSnapshot((snapshot) => {
+                albumData.pages = [];
+                snapshot.forEach((doc) => {
+                    albumData.pages.push({
+                        id: doc.id,
+                        ...doc.data()
+                    });
+                });
+
+                useLocalStorageFallback = false;
+                saveLocalBackup();
+                updateStatusUI('connected', "Nube Conectada");
+                renderAlbum();
+                updateNavigation();
+            }, (error) => {
+                console.warn("Pages snapshot error:", error);
+                enableLocalStorageFallback("Permisos denegados");
+            });
+        }
+
+        function getTotalSpreads() {
+            return 1 + Math.max(1, Math.ceil(albumData.pages.length / 2));
+        }
+
+        function renderAlbum() {
+            const container = document.getElementById('album-book');
+            container.innerHTML = '';
+
+            if (currentSpread === 0) {
+                // RENDER COVER WITH SLIDE IN ANIMATION
+                container.className = "w-full max-w-lg mx-auto h-full cover-texture rounded-2xl flex flex-col justify-between p-5 sm:p-8 relative overflow-hidden transition-all duration-700 animate-cover-slide";
+                
+                const cover = albumData.cover;
+                container.innerHTML = `
+                    <!-- Decorative Corner Frames -->
+                    <div class="absolute top-3 left-3 w-8 h-8 border-t-2 border-l-2 border-rose-gold/60"></div>
+                    <div class="absolute top-3 right-3 w-8 h-8 border-t-2 border-r-2 border-rose-gold/60"></div>
+                    <div class="absolute bottom-3 left-3 w-8 h-8 border-b-2 border-l-2 border-rose-gold/60"></div>
+                    <div class="absolute bottom-3 right-3 w-8 h-8 border-b-2 border-r-2 border-rose-gold/60"></div>
+
+                    <!-- Top Banner -->
+                    <div class="text-center pt-2 z-10">
+                        <i class="fa-solid fa-heart text-deep-pink text-xl mb-1 animate-heart"></i>
+                        <h2 class="font-serif-title text-xl sm:text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-dusty-rose via-rose-gold to-romantic-pink tracking-wide">
+                            ${escapeHtml(cover.title)}
+                        </h2>
+                        <div class="w-20 h-0.5 bg-rose-gold/40 mx-auto my-1.5"></div>
+                        <p class="font-script text-lg sm:text-xl text-rose-gold font-medium leading-tight px-4">
+                            ${escapeHtml(cover.names)}
+                        </p>
+                    </div>
+
+                    <!-- Cover Photo Centerpiece -->
+                    <div class="my-2 flex justify-center items-center z-10 flex-1 min-h-0">
+                        <div class="relative p-2 bg-charcoal/90 border border-rose-gold/50 rounded-xl shadow-2xl max-h-[200px] sm:max-h-[250px] overflow-hidden group">
+                            <img src="${cover.photoUrl}" alt="Portada" class="max-h-[180px] sm:max-h-[230px] w-auto object-cover rounded-lg shadow-md transition-transform duration-500 group-hover:scale-105" onerror="this.src='https://placehold.co/600x400/121212/B76E79?text=Nuestra+Foto'">
+                        </div>
+                    </div>
+
+                    <!-- Cover Postscript Footer -->
+                    <div class="text-center pb-1 z-10">
+                        <p class="font-serif-title italic text-xs sm:text-sm text-romantic-pink/90 tracking-wide px-2">
+                            "${escapeHtml(cover.date)}"
+                        </p>
+                        <p class="text-[10px] text-gray-500 mt-2">Haz clic en "Siguiente" para abrir nuestro libro ❤️</p>
+                    </div>
+                `;
+            } else {
+                // RENDER TWO-PAGE OPEN BOOK SPREAD
+                container.className = "w-full h-full bg-charcoal rounded-2xl flex border-2 border-rose-gold/40 shadow-2xl relative overflow-hidden transition-all duration-700";
+
+                const pageIndexLeft = (currentSpread - 1) * 2;
+                const pageIndexRight = pageIndexLeft + 1;
+
+                const leftPageData = albumData.pages[pageIndexLeft];
+                const rightPageData = albumData.pages[pageIndexRight];
+
+                // Render Left Page
+                const leftPageHTML = renderSinglePageHTML(leftPageData, pageIndexLeft, 'left');
+                // Render Right Page
+                const rightPageHTML = renderSinglePageHTML(rightPageData, pageIndexRight, 'right');
+
+                container.innerHTML = `
+                    <!-- Left Page -->
+                    <div class="w-1/2 h-full paper-texture page-shadow-left border-r border-gray-300/40 relative flex flex-col justify-between p-3 sm:p-6 text-gray-800">
+                        ${leftPageHTML}
+                    </div>
+
+                    <!-- Book Spine Middle Shadow -->
+                    <div class="absolute inset-y-0 left-1/2 -translate-x-1/2 w-8 spine-middle-shadow z-20 pointer-events-none"></div>
+
+                    <!-- Right Page -->
+                    <div class="w-1/2 h-full paper-texture page-shadow-right relative flex flex-col justify-between p-3 sm:p-6 text-gray-800">
+                        ${rightPageHTML}
+                    </div>
+                `;
+            }
+
+            renderDots();
+        }
+
+        function renderSinglePageHTML(pageData, index, side) {
+            if (!pageData) {
+                // Empty slot prompt
+                return `
+                    <div class="h-full flex flex-col items-center justify-center text-center p-4 border-2 border-dashed border-rose-gold/30 rounded-xl m-2">
+                        <i class="fa-solid fa-heart-circle-plus text-3xl text-rose-gold/60 mb-2"></i>
+                        <p class="font-serif-title text-sm text-gray-500 mb-3">Página vacía</p>
+                        <button onclick="openPageModal(${index})" class="px-3 py-1.5 bg-rose-gold text-white text-xs rounded-full shadow hover:bg-rose-gold/80 transition-all">
+                            <i class="fa-solid fa-plus mr-1"></i> Subir Foto a Firebase
+                        </button>
+                    </div>
+                `;
+            }
+
+            const isLeft = side === 'left';
+            const tapeClass = isLeft ? 'photo-tape -top-2 left-4' : 'photo-tape-right photo-tape -top-2 right-4';
+            const fontClass = pageData.font || 'font-script';
+
+            return `
+                <!-- Edit button for this page -->
+                <button onclick="openPageModal(${index})" title="Editar esta página" class="absolute top-2 ${isLeft ? 'right-2' : 'left-2'} z-30 w-7 h-7 rounded-full bg-charcoal/70 hover:bg-rose-gold text-white text-xs flex items-center justify-center transition-all shadow">
+                    <i class="fa-solid fa-pen"></i>
+                </button>
+
+                <!-- Photo Container with Scrapbook Polaroid Frame -->
+                <div class="flex-1 flex items-center justify-center p-1 sm:p-3 relative min-h-0">
+                    <div class="relative bg-white p-2 sm:p-3 pb-6 sm:pb-8 shadow-md rounded border border-gray-200 max-h-full max-w-full flex flex-col items-center transition-transform hover:scale-[1.01]">
+                        <div class="${tapeClass}"></div>
+                        <img src="${pageData.photoUrl}" alt="Foto" class="max-h-[140px] sm:max-h-[220px] md:max-h-[260px] w-auto object-cover rounded shadow-inner" onerror="this.src='https://placehold.co/500x350/fdfbf7/121212?text=Cargando...'">
+                    </div>
+                </div>
+
+                <!-- Text Dedication Caption -->
+                <div class="my-2 sm:my-3 text-center px-2">
+                    <p class="${fontClass} text-base sm:text-xl md:text-2xl text-charcoal leading-relaxed">
+                        "${escapeHtml(pageData.caption)}"
+                    </p>
+                </div>
+
+                <!-- Page Number -->
+                <div class="text-[10px] sm:text-xs text-gray-400 font-serif-title text-center border-t border-gray-200/60 pt-1">
+                    - ${index + 1} -
+                </div>
+            `;
+        }
+
+        function nextPage() {
+            if (currentSpread < getTotalSpreads() - 1) {
+                currentSpread++;
+                renderAlbum();
+                updateNavigation();
+            }
+        }
+
+        function prevPage() {
+            if (currentSpread > 0) {
+                currentSpread--;
+                renderAlbum();
+                updateNavigation();
+            }
+        }
+
+        function goToSpread(spreadIndex) {
+            currentSpread = spreadIndex;
+            renderAlbum();
+            updateNavigation();
+        }
+
+        function updateNavigation() {
+            const btnPrev = document.getElementById('btn-prev');
+            const btnNext = document.getElementById('btn-next');
+            const indicator = document.getElementById('page-indicator');
+
+            btnPrev.disabled = currentSpread === 0;
+            btnNext.disabled = currentSpread >= getTotalSpreads() - 1;
+
+            if (currentSpread === 0) {
+                indicator.textContent = "Portada";
+            } else {
+                const pageL = (currentSpread - 1) * 2 + 1;
+                const pageR = pageL + 1;
+                indicator.textContent = `Páginas ${pageL} - ${pageR}`;
+            }
+        }
+
+        function renderDots() {
+            const dotsContainer = document.getElementById('page-dots');
+            dotsContainer.innerHTML = '';
+            const total = getTotalSpreads();
+
+            for (let i = 0; i < total; i++) {
+                const dot = document.createElement('button');
+                dot.className = `w-2.5 h-2.5 rounded-full transition-all ${i === currentSpread ? 'bg-deep-pink w-5' : 'bg-rose-gold/40 hover:bg-rose-gold'}`;
+                dot.onclick = () => goToSpread(i);
+                dotsContainer.appendChild(dot);
+            }
+        }
+
+        // --- Firebase Cover Upload & Edit ---
+        function openCoverModal() {
+            document.getElementById('input-cover-title').value = albumData.cover.title || '';
+            document.getElementById('input-cover-names').value = albumData.cover.names || '';
+            document.getElementById('input-cover-date').value = albumData.cover.date || '';
+            document.getElementById('cover-loading').classList.add('hidden');
+            document.getElementById('cover-modal').classList.remove('hidden');
+        }
+
+        function closeCoverModal() {
+            document.getElementById('cover-modal').classList.add('hidden');
+        }
+
+        async function saveCoverDetails() {
+            const loading = document.getElementById('cover-loading');
+            if (loading) loading.classList.remove('hidden');
+
+            const title = document.getElementById('input-cover-title').value;
+            const names = document.getElementById('input-cover-names').value;
+            const date = document.getElementById('input-cover-date').value;
+
+            try {
+                albumData.cover = { title, names, date, photoUrl: FIXED_COVER_PHOTO };
+                saveLocalBackup();
+
+                if (!useLocalStorageFallback) {
+                    await db.collection("config").doc("cover").set({
+                        title: title,
+                        names: names,
+                        date: date,
+                        photoUrl: FIXED_COVER_PHOTO,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    }, { merge: true });
+                }
+
+                renderAlbum();
+                closeCoverModal();
+            } catch (err) {
+                console.error("Error al guardar portada:", err);
+                renderAlbum();
+                closeCoverModal();
+            } finally {
+                if (loading) loading.classList.add('hidden');
+            }
+        }
+
+        function readFileAsDataURL(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // --- Firebase Page Upload & Edit ---
+        function openPageModal(index) {
+            editingPageIndex = index;
+            const isEditing = index !== null && albumData.pages[index];
+            const pageData = isEditing ? albumData.pages[index] : { caption: '', font: 'font-script' };
+
+            document.getElementById('modal-title-action').textContent = isEditing ? `Editar Página #${index + 1}` : "Subir Nuevo Recuerdo";
+            document.getElementById('input-page-text').value = pageData.caption || '';
+            document.getElementById('input-page-font').value = pageData.font || 'font-script';
+            document.getElementById('input-page-photo').value = '';
+            document.getElementById('page-loading').classList.add('hidden');
+
+            const btnDelete = document.getElementById('btn-delete-page');
+            if (isEditing) {
+                btnDelete.classList.remove('hidden');
+            } else {
+                btnDelete.classList.add('hidden');
+            }
+
+            document.getElementById('page-modal').classList.remove('hidden');
+        }
+
+        function closePageModal() {
+            document.getElementById('page-modal').classList.add('hidden');
+            editingPageIndex = null;
+        }
+
+        async function savePageDetails() {
+            const loading = document.getElementById('page-loading');
+            loading.classList.remove('hidden');
+
+            const caption = document.getElementById('input-page-text').value;
+            const font = document.getElementById('input-page-font').value;
+            const fileInput = document.getElementById('input-page-photo');
+
+            const isEditing = editingPageIndex !== null && albumData.pages[editingPageIndex];
+            let photoUrl = isEditing ? albumData.pages[editingPageIndex].photoUrl : "https://images.unsplash.com/photo-1518199266791-5375a83190b7?q=80&w=800&auto=format&fit=crop";
+
+            try {
+                if (fileInput.files && fileInput.files[0]) {
+                    const file = fileInput.files[0];
+                    if (!useLocalStorageFallback) {
+                        try {
+                            const storageRef = storage.ref(`fotos/${Date.now()}_${file.name}`);
+                            await storageRef.put(file);
+                            photoUrl = await storageRef.getDownloadURL();
+                        } catch (e) {
+                            photoUrl = await readFileAsDataURL(file);
+                        }
+                    } else {
+                        photoUrl = await readFileAsDataURL(file);
+                    }
+                }
+
+                if (useLocalStorageFallback) {
+                    if (isEditing) {
+                        albumData.pages[editingPageIndex] = { ...albumData.pages[editingPageIndex], caption, font, photoUrl };
+                    } else {
+                        albumData.pages.push({ id: 'local_' + Date.now(), caption, font, photoUrl });
+                        triggerConfetti();
+                    }
+                    saveLocalBackup();
+                    renderAlbum();
+                    updateNavigation();
+                } else {
+                    if (isEditing) {
+                        const docId = albumData.pages[editingPageIndex].id;
+                        await db.collection("paginas").doc(docId).update({
+                            caption: caption,
+                            font: font,
+                            photoUrl: photoUrl,
+                            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                    } else {
+                        await db.collection("paginas").add({
+                            caption: caption,
+                            font: font,
+                            photoUrl: photoUrl,
+                            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                        triggerConfetti();
+                    }
+                }
+
+                closePageModal();
+            } catch (err) {
+                console.error("Error al guardar página:", err);
+                if (isEditing) {
+                    albumData.pages[editingPageIndex] = { ...albumData.pages[editingPageIndex], caption, font, photoUrl };
+                } else {
+                    albumData.pages.push({ id: 'local_' + Date.now(), caption, font, photoUrl });
+                }
+                saveLocalBackup();
+                renderAlbum();
+                updateNavigation();
+                closePageModal();
+            } finally {
+                loading.classList.add('hidden');
+            }
+        }
+
+        async function deleteCurrentPage() {
+            if (editingPageIndex === null || !albumData.pages[editingPageIndex]) return;
+
+            const docId = albumData.pages[editingPageIndex].id;
+            try {
+                if (!useLocalStorageFallback && !docId.startsWith('local_')) {
+                    await db.collection("paginas").doc(docId).delete();
+                } else {
+                    albumData.pages.splice(editingPageIndex, 1);
+                    saveLocalBackup();
+                    renderAlbum();
+                    updateNavigation();
+                }
+                closePageModal();
+            } catch (err) {
+                console.error("Error al borrar página:", err);
+                albumData.pages.splice(editingPageIndex, 1);
+                saveLocalBackup();
+                renderAlbum();
+                updateNavigation();
+                closePageModal();
+            }
+        }
+
+        function toggleSlideshow() {
+            const icon = document.getElementById('slideshow-icon');
+            const text = document.getElementById('slideshow-text');
+
+            if (slideshowInterval) {
+                clearInterval(slideshowInterval);
+                slideshowInterval = null;
+                icon.className = "fa-solid fa-play";
+                text.textContent = "Presentación";
+            } else {
+                icon.className = "fa-solid fa-pause";
+                text.textContent = "Pausar";
+                
+                slideshowInterval = setInterval(() => {
+                    if (currentSpread < getTotalSpreads() - 1) {
+                        nextPage();
+                    } else {
+                        currentSpread = 0;
+                        renderAlbum();
+                        updateNavigation();
+                    }
+                }, 4000);
+            }
+        }
+
+        function triggerConfetti() {
+            if (typeof confetti === 'function') {
+                confetti({
+                    particleCount: 50,
+                    spread: 70,
+                    origin: { y: 0.7 },
+                    colors: ['#B76E79', '#FF4D6D', '#FF8FA3', '#FFFFFF']
+                });
+            }
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            return text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+    </script>
+</body>
+</html>
