@@ -65,7 +65,7 @@
 </head>
 <body class="bg-brand-black text-gray-200 font-sans min-h-screen flex flex-col justify-between selection:bg-brand-pink selection:text-white overflow-x-hidden">
 
-    <!-- Reproductor de audio en bucle -->
+    <!-- Reproductor de audio -->
     <audio id="bg-music" loop preload="auto"></audio>
 
     <!-- Header / Barra de Navegación -->
@@ -114,7 +114,7 @@
                             <div id="cover-upload-container" class="flex flex-col items-center justify-center p-6 text-center space-y-3 cursor-pointer hover:bg-zinc-800/80 transition-all">
                                 <i class="fa-solid fa-camera-retro text-4xl text-brand-pink animate-bounce"></i>
                                 <span class="text-xs font-semibold text-brand-lightpink">Haz clic aquí para subir la Foto de Portada</span>
-                                <span class="text-[10px] text-gray-400 italic">(Se fijará permanentemente y no se podrá modificar)</span>
+                                <span class="text-[10px] text-gray-400 italic">(Se fijará permanentemente)</span>
                                 <input type="file" id="cover-file-input" accept="image/*" class="hidden">
                             </div>
                         </div>
@@ -127,7 +127,7 @@
                     </p>
                     <div id="music-upload-box" class="pt-2 hidden">
                         <label for="music-file-input" class="inline-flex items-center gap-2 px-4 py-2 bg-brand-pink/20 hover:bg-brand-pink/40 border border-brand-pink/50 text-brand-pink rounded-full cursor-pointer text-xs transition-all shadow-md hover:scale-105">
-                            <i class="fa-solid fa-cloud-arrow-up"></i> <span>🎵 Subir canción MP3 (Se fijará para siempre)</span>
+                            <i class="fa-solid fa-cloud-arrow-up"></i> <span>🎵 Subir canción MP3</span>
                         </label>
                         <input type="file" id="music-file-input" accept="audio/*,audio/mp3" class="hidden">
                     </div>
@@ -216,7 +216,6 @@
 
     <!-- Script de Lógica -->
     <script>
-        // Configuración de Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyDsFE-6SKRH00CQXFdZOApCS-V8sEJ5Krw",
             authDomain: "album-nuestra-historia.firebaseapp.com",
@@ -231,17 +230,19 @@
         let firebaseActive = false;
 
         try {
-            firebase.initializeApp(firebaseConfig);
-            db = firebase.firestore();
-            storage = firebase.storage();
-            firebaseActive = true;
+            if (typeof firebase !== 'undefined') {
+                firebase.initializeApp(firebaseConfig);
+                db = firebase.firestore();
+                storage = firebase.storage();
+                firebaseActive = true;
+            }
         } catch (e) {
-            console.warn("Firebase desactivado, usando IndexedDB local.", e);
+            console.warn("Firebase no activo, utilizando almacenamiento local.");
         }
 
         function abrirIndexedDB() {
             return new Promise((resolve, reject) => {
-                const request = indexedDB.open("AlbumHistoriaDB", 1);
+                const request = indexedDB.open("AlbumHistoriaDB", 2);
                 request.onupgradeneeded = (e) => {
                     const idb = e.target.result;
                     if (!idb.objectStoreNames.contains("paginas")) {
@@ -262,7 +263,17 @@
                 const tx = idb.transaction(storeName, "readwrite");
                 tx.objectStore(storeName).put(item);
             } catch (err) {
-                console.warn("Error en IndexedDB:", err);
+                console.warn("Error en IndexedDB, usando localStorage:", err);
+                try {
+                    if (storeName === 'paginas') {
+                        let pages = JSON.parse(localStorage.getItem('album_pages') || '[]');
+                        pages = pages.filter(p => p.id !== item.id);
+                        pages.push(item);
+                        localStorage.setItem('album_pages', JSON.stringify(pages));
+                    } else if (storeName === 'config') {
+                        localStorage.setItem(item.key, item.val);
+                    }
+                } catch(e) {}
             }
         }
 
@@ -273,11 +284,18 @@
                     const tx = idb.transaction(storeName, "readonly");
                     const req = tx.objectStore(storeName).getAll();
                     req.onsuccess = () => resolve(req.result || []);
-                    req.onerror = () => resolve([]);
+                    req.onerror = () => resolve(obtenerFallbackLocalStorage(storeName));
                 });
             } catch (err) {
-                return [];
+                return obtenerFallbackLocalStorage(storeName);
             }
+        }
+
+        function obtenerFallbackLocalStorage(storeName) {
+            if (storeName === 'paginas') {
+                try { return JSON.parse(localStorage.getItem('album_pages') || '[]'); } catch(e) { return []; }
+            }
+            return [];
         }
 
         async function obtenerItemLocalIDB(storeName, key) {
@@ -286,16 +304,16 @@
                 return new Promise((resolve) => {
                     const tx = idb.transaction(storeName, "readonly");
                     const req = tx.objectStore(storeName).get(key);
-                    req.onsuccess = () => resolve(req.result ? req.result.val : null);
-                    req.onerror = () => resolve(null);
+                    req.onsuccess = () => resolve(req.result ? req.result.val : localStorage.getItem(key));
+                    req.onerror = () => resolve(localStorage.getItem(key));
                 });
             } catch (err) {
-                return null;
+                return localStorage.getItem(key);
             }
         }
 
-        function comprimirImagen(file, maxWidth = 1000, quality = 0.7) {
-            return new Promise((resolve) => {
+        function comprimirImagen(file, maxWidth = 800, quality = 0.7) {
+            return new Promise((resolve, reject) => {
                 const reader = new FileReader();
                 reader.onload = (e) => {
                     const img = new Image();
@@ -314,11 +332,12 @@
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(img, 0, 0, width, height);
 
-                        const dataUrl = canvas.toDataURL('image/jpeg', quality);
-                        resolve(dataUrl);
+                        resolve(canvas.toDataURL('image/jpeg', quality));
                     };
+                    img.onerror = () => reject(new Error("No se pudo cargar la imagen seleccionada."));
                     img.src = e.target.result;
                 };
+                reader.onerror = () => reject(new Error("Error al leer el archivo local."));
                 reader.readAsDataURL(file);
             });
         }
@@ -365,7 +384,7 @@
                 fijarFotoPortada(localCover);
             }
 
-            if (firebaseActive) {
+            if (firebaseActive && db) {
                 db.collection("config").doc("cover").get().then((doc) => {
                     if (doc.exists && doc.data().url) {
                         fijarFotoPortada(doc.data().url);
@@ -387,18 +406,22 @@
             const file = e.target.files[0];
             if (!file) return;
 
-            const compressedBase64 = await comprimirImagen(file, 1000, 0.8);
-            fijarFotoPortada(compressedBase64);
-            await guardarLocalIDB('config', { key: 'album_cover_url', val: compressedBase64 });
+            try {
+                const compressedBase64 = await comprimirImagen(file, 800, 0.75);
+                fijarFotoPortada(compressedBase64);
+                await guardarLocalIDB('config', { key: 'album_cover_url', val: compressedBase64 });
 
-            if (firebaseActive) {
-                try {
-                    const ref = storage.ref(`portada/foto_portada_fija`);
-                    await ref.put(file);
-                    const firebaseUrl = await ref.getDownloadURL();
-                    await db.collection("config").doc("cover").set({ url: firebaseUrl });
-                    guardarLocalIDB('config', { key: 'album_cover_url', val: firebaseUrl });
-                } catch (err) {}
+                if (firebaseActive && storage) {
+                    try {
+                        const ref = storage.ref(`portada/foto_portada_fija`);
+                        await ref.put(file);
+                        const firebaseUrl = await ref.getDownloadURL();
+                        await db.collection("config").doc("cover").set({ url: firebaseUrl });
+                        guardarLocalIDB('config', { key: 'album_cover_url', val: firebaseUrl });
+                    } catch (err) {}
+                }
+            } catch(err) {
+                alert("Ocurrió un error al cargar la portada.");
             }
         });
 
@@ -411,7 +434,7 @@
                 musicUploadBox.classList.remove('hidden');
             }
 
-            if (firebaseActive) {
+            if (firebaseActive && db) {
                 db.collection("config").doc("music").get().then((doc) => {
                     if (doc.exists && doc.data().url) {
                         fijarCancion(doc.data().url);
@@ -442,7 +465,7 @@
                     actualizarIconoMusica();
                 }).catch(() => {});
 
-                if (firebaseActive) {
+                if (firebaseActive && storage) {
                     try {
                         const ref = storage.ref(`musica/cancion_fija.mp3`);
                         await ref.put(file);
@@ -483,7 +506,7 @@
                 if (currentSpreadIndex > 0) renderizarLibro();
             }
 
-            if (firebaseActive) {
+            if (firebaseActive && db) {
                 db.collection("paginas").orderBy("timestamp", "asc").onSnapshot((snapshot) => {
                     const netPages = [];
                     snapshot.forEach((doc) => {
@@ -571,7 +594,7 @@
             `;
         }
 
-        // FUNCIONES DE VENTANA EMERGENTE (MODAL)
+        // VENTANA EMERGENTE (MODAL)
         const pageModal = document.getElementById('page-modal');
         
         function abrirModalAgregar() {
@@ -597,13 +620,14 @@
             const font = fontInput.value;
 
             if (!file) {
+                alert("Por favor selecciona una imagen.");
                 btnSave.disabled = false;
                 btnSave.innerText = "Guardar Recuerdo";
                 return;
             }
 
             try {
-                const compressedImage = await comprimirImagen(file, 800, 0.75);
+                const compressedImage = await comprimirImagen(file, 800, 0.7);
 
                 const newPage = {
                     id: Date.now().toString(),
@@ -615,9 +639,14 @@
 
                 albumPages.push(newPage);
                 await guardarLocalIDB('paginas', newPage);
+
+                if (currentSpreadIndex === 0) {
+                    currentSpreadIndex = Math.ceil(albumPages.length / 2) || 1;
+                }
+                
                 renderizarLibro();
 
-                if (firebaseActive) {
+                if (firebaseActive && storage && db) {
                     try {
                         const ref = storage.ref(`fotos/${Date.now()}_${file.name}`);
                         await ref.put(file);
@@ -631,13 +660,14 @@
                         });
                     } catch (firebaseErr) {}
                 }
+
+                document.getElementById('form-add-page').reset();
+                pageModal.classList.add('hidden');
             } catch (error) {
-                alert("Error al procesar la imagen: " + error.message);
+                alert("Error al guardar la página: " + error.message);
             } finally {
                 btnSave.disabled = false;
                 btnSave.innerText = "Guardar Recuerdo";
-                document.getElementById('form-add-page').reset();
-                pageModal.classList.add('hidden');
             }
         });
 
