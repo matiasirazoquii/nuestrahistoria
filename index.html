@@ -142,7 +142,7 @@
                         <label for="music-file-input" class="inline-flex items-center gap-2 px-4 py-2 bg-brand-pink/20 hover:bg-brand-pink/40 border border-brand-pink/50 text-brand-pink rounded-full cursor-pointer text-xs transition-all shadow-md hover:scale-105">
                             <i class="fa-solid fa-cloud-arrow-up"></i> <span>🎵 Subir canción MP3 (Se fijará para siempre)</span>
                         </label>
-                        <input type="file" id="music-file-input" accept="audio/mp3,audio/*" class="hidden">
+                        <input type="file" id="music-file-input" accept="audio/*,audio/mp3" class="hidden">
                     </div>
                 </div>
 
@@ -309,35 +309,39 @@
         function fijarFotoPortada(url) {
             coverPhoto.src = url;
             coverPhoto.classList.remove('hidden');
-            coverUploadContainer.classList.add('hidden'); // Ocultar y bloquear subida para siempre
+            coverUploadContainer.style.display = 'none'; // Ocultar bloque de subida para siempre
         }
 
         coverUploadContainer.addEventListener('click', () => coverFileInput.click());
 
-        coverFileInput.addEventListener('change', async (e) => {
+        coverFileInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (!file) return;
 
-            if (firebaseActive) {
-                try {
-                    const ref = storage.ref(`portada/foto_portada_fija`);
-                    await ref.put(file);
-                    const url = await ref.getDownloadURL();
-                    await db.collection("config").doc("cover").set({ url: url });
-                    fijarFotoPortada(url);
-                    alert("¡Foto de portada subida y fijada permanentemente!");
-                } catch (err) {
-                    alert("Error al subir portada: " + err.message);
-                }
-            } else {
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                    localStorage.setItem('album_cover_url', event.target.result);
-                    fijarFotoPortada(event.target.result);
+            const reader = new FileReader();
+            reader.onload = async (event) => {
+                const base64Url = event.target.result;
+                fijarFotoPortada(base64Url);
+
+                if (firebaseActive) {
+                    try {
+                        const ref = storage.ref(`portada/foto_portada_fija`);
+                        await ref.put(file);
+                        const firebaseUrl = await ref.getDownloadURL();
+                        await db.collection("config").doc("cover").set({ url: firebaseUrl });
+                        fijarFotoPortada(firebaseUrl);
+                        alert("¡Foto de portada subida y fijada permanentemente!");
+                    } catch (err) {
+                        console.warn("No se pudo subir a la nube, se guardó localmente:", err);
+                        localStorage.setItem('album_cover_url', base64Url);
+                        alert("Foto de portada fijada localmente.");
+                    }
+                } else {
+                    localStorage.setItem('album_cover_url', base64Url);
                     alert("¡Foto de portada fijada permanentemente!");
-                };
-                reader.readAsDataURL(file);
-            }
+                }
+            };
+            reader.readAsDataURL(file);
         });
 
         // --- MANEJO DE MÚSICA MP3 FIJA E INMODIFICABLE ---
@@ -364,39 +368,43 @@
 
         function fijarCancion(url) {
             bgMusic.src = url;
-            musicUploadBox.classList.add('hidden'); // Ocultar y bloquear botón para siempre
+            musicUploadBox.style.display = 'none'; // Ocultar y bloquear botón para siempre
         }
 
-        musicFileInput.addEventListener('change', async (e) => {
+        musicFileInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (!file) return;
 
-            if (firebaseActive) {
-                try {
-                    const ref = storage.ref(`musica/cancion_fija.mp3`);
-                    await ref.put(file);
-                    const url = await ref.getDownloadURL();
-                    await db.collection("config").doc("music").set({ url: url });
-                    fijarCancion(url);
-                    bgMusic.play();
+            const reader = new FileReader();
+            reader.onload = async (event) => {
+                const audioUrl = event.target.result;
+                
+                // Activar la reproducción de inmediato
+                fijarCancion(audioUrl);
+                bgMusic.play().then(() => {
                     isMuted = false;
                     actualizarIconoMúsica();
-                    alert("¡Canción MP3 subida y fijada permanentemente a la nube!");
-                } catch (err) {
-                    alert("Error al subir música: " + err.message);
+                }).catch(() => {});
+
+                if (firebaseActive) {
+                    try {
+                        const ref = storage.ref(`musica/cancion_fija.mp3`);
+                        await ref.put(file);
+                        const firebaseUrl = await ref.getDownloadURL();
+                        await db.collection("config").doc("music").set({ url: firebaseUrl });
+                        fijarCancion(firebaseUrl);
+                        alert("¡Canción MP3 subida y fijada permanentemente a la nube!");
+                    } catch (err) {
+                        console.warn("Guardado local de audio por fallas de storage:", err);
+                        localStorage.setItem('album_music_url', audioUrl);
+                        alert("¡Canción MP3 fijada!");
+                    }
+                } else {
+                    localStorage.setItem('album_music_url', audioUrl);
+                    alert("¡Canción MP3 fijada!");
                 }
-            } else {
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                    localStorage.setItem('album_music_url', event.target.result);
-                    fijarCancion(event.target.result);
-                    bgMusic.play();
-                    isMuted = false;
-                    actualizarIconoMúsica();
-                    alert("¡Canción MP3 fijada permanentemente!");
-                };
-                reader.readAsDataURL(file);
-            }
+            };
+            reader.readAsDataURL(file);
         });
 
         // Botón único para silenciar/activar
