@@ -12,7 +12,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Montserrat:wght@300;400;600&family=Playfair+Display:ital,wght@0,600;1,400&family=Sacramento&display=swap" rel="stylesheet">
-    
+
     <!-- SDKs de Firebase -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
@@ -54,7 +54,6 @@
             box-shadow: 0 1px 3px rgba(0,0,0,0.15);
             backdrop-filter: blur(1px);
         }
-        /* Ajuste táctil suave */
         button, label, input, select {
             touch-action: manipulation;
         }
@@ -62,10 +61,7 @@
 </head>
 <body class="bg-brand-black text-gray-200 font-sans min-h-screen flex flex-col justify-between selection:bg-brand-pink selection:text-white overflow-x-hidden">
 
-    <!-- Audio -->
-    <audio id="bg-music" loop preload="auto"></audio>
-
-    <!-- Header Móvil Optimizado -->
+    <!-- Header Móvil Optimizado sin opción de audio -->
     <header class="p-3 bg-brand-darkgray/90 backdrop-blur-md border-b border-brand-pink/20 sticky top-0 z-50 flex justify-between items-center shadow-md">
         <div class="flex items-center gap-2">
             <i class="fa-solid fa-book-heart text-brand-pink text-xl"></i>
@@ -76,11 +72,8 @@
             <button id="btn-add-page" type="button" class="px-3 py-1.5 bg-brand-pink active:scale-95 text-white text-xs font-semibold rounded-full transition-all flex items-center gap-1.5 shadow-md shadow-brand-pink/20">
                 <i class="fa-solid fa-plus text-xs"></i> <span>Agregar</span>
             </button>
-            <button id="btn-slideshow" type="button" class="w-8 h-8 bg-brand-darkgray border border-brand-pink/40 text-brand-pink text-xs rounded-full flex items-center justify-center active:scale-95">
-                <i class="fa-solid fa-play"></i>
-            </button>
-            <button id="btn-mute-toggle" type="button" class="w-8 h-8 bg-brand-pink/20 text-brand-pink border border-brand-pink/50 rounded-full flex items-center justify-center active:scale-95">
-                <i id="mute-icon" class="fa-solid fa-volume-xmark text-sm"></i>
+            <button id="btn-slideshow" type="button" class="px-3 py-1.5 bg-brand-darkgray border border-brand-pink/40 text-brand-pink text-xs rounded-full flex items-center justify-center active:scale-95">
+                <i class="fa-solid fa-play text-xs mr-1"></i> Presentación
             </button>
         </div>
     </header>
@@ -89,7 +82,7 @@
     <main class="flex-1 flex flex-col items-center justify-center p-3 md:p-6 my-auto w-full max-w-4xl mx-auto">
         
         <!-- PORTADA -->
-        <div id="cover-view" class="w-full relative bg-gradient-to-br from-brand-darkgray via-black to-brand-darkgray border-4 md:border-8 border-brand-pink/30 rounded-2xl p-4 md:p-8 book-shadow flex flex-col items-center text-center justify-between min-h-[80vh] md:min-h-[520px]">
+        <div id="cover-view" class="w-full relative bg-gradient-to-br from-brand-darkgray via-black to-brand-darkgray border-4 md:border-8 border-brand-pink/30 rounded-2xl p-4 md:p-8 book-shadow flex flex-col items-center text-center justify-between min-h-[75vh] md:min-h-[500px]">
             
             <div class="space-y-1 my-2">
                 <h1 class="font-serif text-2xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-brand-lightpink via-brand-pink to-brand-darkpink leading-tight">
@@ -115,17 +108,11 @@
                 </div>
             </div>
 
-            <!-- Frase y Música -->
+            <!-- Dedicatoria -->
             <div class="w-full max-w-md my-2 space-y-2">
                 <p class="font-handwriting text-lg md:text-2xl text-pink-200 italic">
                     Posdata: mi amor por vos es más grande que el universo
                 </p>
-                <div id="music-upload-box" class="pt-1">
-                    <label for="music-file-input" class="inline-flex items-center gap-2 px-4 py-2 bg-brand-pink/20 border border-brand-pink/50 text-brand-pink rounded-full cursor-pointer text-xs active:scale-95 transition-all">
-                        <i class="fa-solid fa-music"></i> <span id="music-label">Subir canción MP3</span>
-                    </label>
-                    <input type="file" id="music-file-input" accept="audio/*,audio/mp3" class="hidden">
-                </div>
             </div>
 
             <div class="mt-3 w-full max-w-xs">
@@ -136,12 +123,11 @@
             </div>
         </div>
 
-        <!-- INTERIOR DEL LIBRO (MÓVIL ADAPTADO) -->
-        <div id="pages-view" class="hidden w-full relative bg-brand-cream text-zinc-800 rounded-2xl book-shadow min-h-[75vh] border-2 md:border-4 border-amber-900/20 overflow-hidden flex flex-col justify-between">
+        <!-- INTERIOR DEL LIBRO (ADAPTADO A MÓVIL) -->
+        <div id="pages-view" class="hidden w-full relative bg-brand-cream text-zinc-800 rounded-2xl book-shadow min-h-[70vh] border-2 md:border-4 border-amber-900/20 overflow-hidden flex flex-col justify-between">
             <div class="hidden md:block absolute inset-y-0 left-1/2 w-12 -ml-6 spine z-20 pointer-events-none"></div>
 
-            <!-- Vista Móvil: Muestra de a 1 foto con paginación fluida -->
-            <div class="grid grid-cols-1 md:grid-cols-2 min-h-[500px] flex-1">
+            <div class="grid grid-cols-1 md:grid-cols-2 min-h-[480px] flex-1">
                 <div id="left-page" class="p-4 md:p-6 flex flex-col justify-between border-b md:border-b-0 md:border-r border-amber-900/10 relative">
                     <div class="text-[10px] md:text-xs font-serif text-amber-900/50 mb-1 text-right md:text-left" id="left-page-num">Pág. 1</div>
                     <div id="left-page-content" class="flex-1 flex flex-col justify-center items-center"></div>
@@ -154,7 +140,7 @@
             </div>
         </div>
 
-        <!-- Botones Navegación Móvil -->
+        <!-- Botones Navegación -->
         <div id="nav-controls" class="hidden flex items-center justify-between w-full mt-4 px-2">
             <button id="btn-prev" type="button" class="px-4 py-2 bg-brand-darkgray text-white rounded-full border border-brand-pink/30 text-xs flex items-center gap-1.5 active:scale-95 shadow-md">
                 <i class="fa-solid fa-chevron-left"></i> Anteriores
@@ -208,7 +194,7 @@
         Hecho con <i class="fa-solid fa-heart text-brand-pink"></i> para el amor de mi vida
     </footer>
 
-    <!-- Lógica de Funcionamiento -->
+    <!-- Lógica de Funcionamiento Ultra Rápida -->
     <script>
         const firebaseConfig = {
             apiKey: "AIzaSyDsFE-6SKRH00CQXFdZOApCS-V8sEJ5Krw",
@@ -234,8 +220,8 @@
             console.warn("Firebase no activo", e);
         }
 
-        // Compresión optimizada para subir desde celulares de alta gama sin demoras
-        function comprimirImagen(file, maxWidth = 800, quality = 0.7) {
+        // Redimensionamiento de imagen liviano para móviles
+        function reducirImagen(file, maxWidth = 700, quality = 0.65) {
             return new Promise((resolve) => {
                 const reader = new FileReader();
                 reader.onload = (e) => {
@@ -257,7 +243,7 @@
 
                         const dataUrl = canvas.toDataURL('image/jpeg', quality);
                         canvas.toBlob((blob) => {
-                            resolve({ blob, dataUrl });
+                            resolve({ blob: blob || file, dataUrl });
                         }, 'image/jpeg', quality);
                     };
                     img.onerror = () => resolve({ blob: file, dataUrl: e.target.result });
@@ -271,15 +257,10 @@
         let albumPages = [];
         let currentPageIndex = 0;
         let slideshowInterval = null;
-        let isMuted = true;
 
         const coverView = document.getElementById('cover-view');
         const pagesView = document.getElementById('pages-view');
         const navControls = document.getElementById('nav-controls');
-        const bgMusic = document.getElementById('bg-music');
-        const btnMuteToggle = document.getElementById('btn-mute-toggle');
-        const muteIcon = document.getElementById('mute-icon');
-        const musicFileInput = document.getElementById('music-file-input');
 
         const coverPhoto = document.getElementById('cover-photo');
         const coverUploadContainer = document.getElementById('cover-upload-container');
@@ -287,22 +268,13 @@
         const coverStatus = document.getElementById('cover-status');
 
         window.addEventListener('DOMContentLoaded', () => {
-            inicializarSincronizacion();
-            document.body.addEventListener('click', () => {
-                if (bgMusic.src && isMuted) {
-                    bgMusic.play().then(() => { isMuted = false; actualizarIconoAudio(); }).catch(() => {});
-                }
-            }, { once: true });
+            inicializarDatos();
         });
 
-        // Sincronización continua
-        function inicializarSincronizacion() {
-            // Cargar desde caché local primero para instantaneidad
+        function inicializarDatos() {
+            // Cargar datos locales inmediatamente
             const localCover = localStorage.getItem('local_cover');
             if (localCover) fijarFotoPortada(localCover);
-
-            const localMusic = localStorage.getItem('local_music');
-            if (localMusic) fijarCancion(localMusic);
 
             const localPages = localStorage.getItem('local_pages');
             if (localPages) {
@@ -313,23 +285,14 @@
 
             if (!firebaseActive || !db) return;
 
-            // Escuchar Portada
-            db.collection("config").doc("cover").onSnapshot(doc => {
+            // Sincronización en segundo plano desde Firebase
+            db.collection("config").doc("cover").get().then(doc => {
                 if (doc.exists && doc.data().url) {
                     fijarFotoPortada(doc.data().url);
                     localStorage.setItem('local_cover', doc.data().url);
                 }
-            });
+            }).catch(() => {});
 
-            // Escuchar Música
-            db.collection("config").doc("music").onSnapshot(doc => {
-                if (doc.exists && doc.data().url) {
-                    fijarCancion(doc.data().url);
-                    localStorage.setItem('local_music', doc.data().url);
-                }
-            });
-
-            // Escuchar Páginas
             db.collection("paginas").orderBy("timestamp", "asc").onSnapshot(snapshot => {
                 const paginas = [];
                 snapshot.forEach(doc => paginas.push({ id: doc.id, ...doc.data() }));
@@ -338,7 +301,7 @@
                     localStorage.setItem('local_pages', JSON.stringify(albumPages));
                     if (!pagesView.classList.contains('hidden')) renderizarLibro();
                 }
-            });
+            }, () => {});
         }
 
         function fijarFotoPortada(url) {
@@ -355,68 +318,24 @@
             if (!file) return;
 
             coverStatus.innerText = "Procesando...";
-            const compressed = await comprimirImagen(file, 800, 0.75);
+            const compressed = await reducirImagen(file, 700, 0.65);
 
-            // Muestra instantánea local sin esperar al servidor
+            // Mostrar inmediatamente en pantalla
             fijarFotoPortada(compressed.dataUrl);
             localStorage.setItem('local_cover', compressed.dataUrl);
 
+            // Subir a Firebase en segundo plano sin congelar la vista
             if (firebaseActive && storage && db) {
-                try {
-                    coverStatus.innerText = "Guardando en la nube...";
-                    const ref = storage.ref(`portada/foto_portada_${Date.now()}.jpg`);
-                    await ref.put(compressed.blob);
-                    const firebaseUrl = await ref.getDownloadURL();
-                    await db.collection("config").doc("cover").set({ url: firebaseUrl });
-                } catch (err) {
-                    console.warn("Error guardando en la nube", err);
-                }
+                (async () => {
+                    try {
+                        const ref = storage.ref(`portada/portada_${Date.now()}.jpg`);
+                        await ref.put(compressed.blob);
+                        const firebaseUrl = await ref.getDownloadURL();
+                        await db.collection("config").doc("cover").set({ url: firebaseUrl });
+                    } catch (err) {}
+                })();
             }
         });
-
-        function fijarCancion(url) {
-            bgMusic.src = url;
-            document.getElementById('music-label').innerText = "🎵 Canción Activada";
-        }
-
-        musicFileInput.addEventListener('change', async (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            document.getElementById('music-label').innerText = "Subiendo audio...";
-
-            if (firebaseActive && storage && db) {
-                try {
-                    const ref = storage.ref(`musica/cancion_fija_${Date.now()}.mp3`);
-                    await ref.put(file);
-                    const firebaseUrl = await ref.getDownloadURL();
-                    await db.collection("config").doc("music").set({ url: firebaseUrl });
-                } catch (err) {
-                    alert("Error al subir música: " + err.message);
-                    document.getElementById('music-label').innerText = "Subir canción MP3";
-                }
-            }
-        });
-
-        btnMuteToggle.addEventListener('click', () => {
-            if (!bgMusic.src) return;
-            if (bgMusic.paused) {
-                bgMusic.play();
-                isMuted = false;
-            } else {
-                bgMusic.pause();
-                isMuted = true;
-            }
-            actualizarIconoAudio();
-        });
-
-        function actualizarIconoAudio() {
-            if (isMuted || bgMusic.paused) {
-                muteIcon.className = "fa-solid fa-volume-xmark text-sm text-brand-pink";
-            } else {
-                muteIcon.className = "fa-solid fa-volume-high text-sm text-brand-pink animate-pulse";
-            }
-        }
 
         // LIBRO
         document.getElementById('btn-open-book').addEventListener('click', () => {
@@ -425,10 +344,6 @@
             navControls.classList.remove('hidden');
             currentPageIndex = 0;
             renderizarLibro();
-
-            if (bgMusic.src && bgMusic.paused) {
-                bgMusic.play().then(() => { isMuted = false; actualizarIconoAudio(); }).catch(() => {});
-            }
         });
 
         document.getElementById('btn-close-book').addEventListener('click', () => {
@@ -493,7 +408,7 @@
             `;
         }
 
-        // AGREGAR PÁGINA
+        // AGREGAR PÁGINA INSTANTÁNEO
         const pageModal = document.getElementById('page-modal');
         function abrirModalAgregar() { pageModal.classList.remove('hidden'); }
 
@@ -504,22 +419,19 @@
         document.getElementById('form-add-page').addEventListener('submit', async (e) => {
             e.preventDefault();
             const btnSave = document.getElementById('btn-save-page');
-            btnSave.disabled = true;
-            btnSave.innerText = "Guardando...";
-
             const fileInput = document.getElementById('input-page-image');
             const captionInput = document.getElementById('input-page-caption');
             const fontInput = document.getElementById('input-page-font');
 
             const file = fileInput.files[0];
-            if (!file) {
-                btnSave.disabled = false;
-                btnSave.innerText = "Guardar";
-                return;
-            }
+            if (!file) return;
+
+            btnSave.disabled = true;
+            btnSave.innerText = "Procesando...";
 
             try {
-                const compressed = await comprimirImagen(file, 750, 0.7);
+                // Compresión liviana instantánea
+                const compressed = await reducirImagen(file, 650, 0.6);
 
                 const newPage = {
                     id: Date.now().toString(),
@@ -529,6 +441,7 @@
                     timestamp: Date.now()
                 };
 
+                // Actualizar inmediatamente la pantalla y cerrar modal
                 albumPages.push(newPage);
                 localStorage.setItem('local_pages', JSON.stringify(albumPages));
                 renderizarLibro();
@@ -536,21 +449,27 @@
                 document.getElementById('form-add-page').reset();
                 pageModal.classList.add('hidden');
 
+                // Subida en segundo plano si Firebase está activo
                 if (firebaseActive && storage && db) {
-                    const ref = storage.ref(`fotos/${Date.now()}_recuerdo.jpg`);
-                    await ref.put(compressed.blob);
-                    const firebaseUrl = await ref.getDownloadURL();
+                    (async () => {
+                        try {
+                            const ref = storage.ref(`fotos/${Date.now()}_recuerdo.jpg`);
+                            await ref.put(compressed.blob);
+                            const firebaseUrl = await ref.getDownloadURL();
 
-                    await db.collection("paginas").add({
-                        imageUrl: firebaseUrl,
-                        caption: newPage.caption,
-                        font: newPage.font,
-                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                    });
+                            await db.collection("paginas").add({
+                                imageUrl: firebaseUrl,
+                                caption: newPage.caption,
+                                font: newPage.font,
+                                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                            });
+                        } catch(err) {}
+                    })();
                 }
             } catch (err) {
-                alert("Detalle al guardar: " + err.message);
+                alert("Ocurrió un inconveniente al cargar la foto.");
             } finally {
+                // Se garantiza que el botón regrese siempre a su estado normal
                 btnSave.disabled = false;
                 btnSave.innerText = "Guardar";
             }
