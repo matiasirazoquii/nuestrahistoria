@@ -13,7 +13,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Montserrat:wght@300;400;600&family=Playfair+Display:ital,wght@0,600;1,400&family=Sacramento&display=swap" rel="stylesheet">
     
-    <!-- SDKs de Firebase -->
+    <!-- SDKs de Firebase (Compatibilidad) -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script>
@@ -82,7 +82,7 @@
             <button id="btn-slideshow" class="px-3 py-1.5 bg-brand-darkgray border border-brand-pink/40 hover:border-brand-pink text-brand-pink text-xs md:text-sm rounded-full transition-all duration-300 flex items-center gap-1.5">
                 <i class="fa-solid fa-play"></i> <span class="hidden sm:inline">Presentación</span>
             </button>
-            <!-- Único botón de control de audio: Silenciar / Activar -->
+            <!-- Único botón para el sonido: Silenciar / Activar -->
             <button id="btn-mute-toggle" title="Silenciar / Activar sonido" class="w-10 h-10 bg-brand-pink/20 hover:bg-brand-pink/40 text-brand-pink border border-brand-pink/50 rounded-full flex items-center justify-center transition-all duration-300 shadow-md">
                 <i id="mute-icon" class="fa-solid fa-volume-xmark text-lg"></i>
             </button>
@@ -110,25 +110,37 @@
                     </p>
                 </div>
 
-                <!-- Marco con Foto Fija Incrustada -->
+                <!-- Marco de la Foto de Portada (Subida Única E Inmodificable) -->
                 <div class="relative group my-4 z-10 w-full max-w-xs md:max-w-sm">
                     <div class="absolute -inset-1 bg-gradient-to-r from-brand-pink to-brand-darkpink rounded-lg blur opacity-40"></div>
                     <div class="relative bg-brand-black p-3 rounded-lg border border-brand-pink/40 shadow-2xl">
                         <div class="relative aspect-[3/4] overflow-hidden rounded-md bg-zinc-900 flex items-center justify-center">
-                            <img id="cover-photo" src="" alt="Foto de Portada" class="w-full h-full object-cover">
+                            
+                            <!-- Foto una vez fijada -->
+                            <img id="cover-photo" src="" alt="Foto de Portada" class="w-full h-full object-cover hidden">
+                            
+                            <!-- Contenedor para subir la foto por primera y única vez -->
+                            <div id="cover-upload-container" class="flex flex-col items-center justify-center p-6 text-center space-y-3 cursor-pointer hover:bg-zinc-800/80 transition-all">
+                                <i class="fa-solid fa-camera-retro text-4xl text-brand-pink animate-bounce"></i>
+                                <span class="text-xs font-semibold text-brand-lightpink">Haz clic aquí para subir la Foto de Portada</span>
+                                <span class="text-[10px] text-gray-400 italic">(Se fijará permanentemente y no se podrá modificar)</span>
+                                <input type="file" id="cover-file-input" accept="image/*" class="hidden">
+                            </div>
+
                         </div>
                     </div>
                 </div>
 
-                <!-- Posdata y Subida de MP3 -->
+                <!-- Posdata y Subida de Música MP3 (Única e Inmodificable) -->
                 <div class="z-10 w-full max-w-lg mt-2 space-y-3">
                     <p class="font-handwriting text-xl md:text-2xl text-pink-200 italic">
                         Posdata: mi amor por vos es más grande que el universo
                     </p>
 
+                    <!-- Caja para subir MP3 la primera vez -->
                     <div id="music-upload-box" class="pt-2 hidden">
                         <label for="music-file-input" class="inline-flex items-center gap-2 px-4 py-2 bg-brand-pink/20 hover:bg-brand-pink/40 border border-brand-pink/50 text-brand-pink rounded-full cursor-pointer text-xs transition-all shadow-md hover:scale-105">
-                            <i class="fa-solid fa-cloud-arrow-up"></i> <span>🎵 Subir canción MP3 a la nube (Una sola vez)</span>
+                            <i class="fa-solid fa-cloud-arrow-up"></i> <span>🎵 Subir canción MP3 (Se fijará para siempre)</span>
                         </label>
                         <input type="file" id="music-file-input" accept="audio/mp3,audio/*" class="hidden">
                     </div>
@@ -219,9 +231,9 @@
         Hecho con <i class="fa-solid fa-heart text-brand-pink"></i> para el amor de mi vida
     </footer>
 
-    <!-- Script de Configuración y Lógica -->
+    <!-- Script de Lógica -->
     <script>
-        // Credenciales de Firebase
+        // Configuración de Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyDsFE-6SKRH00CQXFdZOApCS-V8sEJ5Krw",
             authDomain: "album-nuestra-historia.firebaseapp.com",
@@ -230,9 +242,6 @@
             messagingSenderId: "303479801921",
             appId: "1:303479801921:web:93e3fb77e769a805635ec0"
         };
-
-        // FOTO DE PORTADA FIJA INCRUSTADA
-        const PERMANENT_COVER_IMAGE = 'https://images.unsplash.com/photo-1518895949257-7621c3c786d7?auto=format&fit=crop&q=80&w=800';
 
         let db = null;
         let storage = null;
@@ -244,7 +253,7 @@
             storage = firebase.storage();
             firebaseActive = true;
         } catch (e) {
-            console.warn("Modo offline o Firebase no conectado.", e);
+            console.warn("Firebase no activo, utilizando modo de respaldo local.", e);
         }
 
         let albumPages = [];
@@ -261,10 +270,12 @@
         const musicUploadBox = document.getElementById('music-upload-box');
         const musicFileInput = document.getElementById('music-file-input');
 
-        // Cargar foto de portada fija en el HTML
-        document.getElementById('cover-photo').src = PERMANENT_COVER_IMAGE;
+        const coverPhoto = document.getElementById('cover-photo');
+        const coverUploadContainer = document.getElementById('cover-upload-container');
+        const coverFileInput = document.getElementById('cover-file-input');
 
         window.addEventListener('DOMContentLoaded', () => {
+            cargarFotoPortada();
             cargarMúsica();
             cargarPaginas();
             document.body.addEventListener('click', iniciarAudioAlContacto, { once: true });
@@ -279,12 +290,62 @@
             }
         }
 
-        // Cargar Música
+        // --- MANEJO DE FOTO DE PORTADA FIJA E INMODIFICABLE ---
+        function cargarFotoPortada() {
+            if (firebaseActive) {
+                db.collection("config").doc("cover").get().then((doc) => {
+                    if (doc.exists && doc.data().url) {
+                        fijarFotoPortada(doc.data().url);
+                    }
+                }).catch(() => {});
+            } else {
+                const localCover = localStorage.getItem('album_cover_url');
+                if (localCover) {
+                    fijarFotoPortada(localCover);
+                }
+            }
+        }
+
+        function fijarFotoPortada(url) {
+            coverPhoto.src = url;
+            coverPhoto.classList.remove('hidden');
+            coverUploadContainer.classList.add('hidden'); // Ocultar y bloquear subida para siempre
+        }
+
+        coverUploadContainer.addEventListener('click', () => coverFileInput.click());
+
+        coverFileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            if (firebaseActive) {
+                try {
+                    const ref = storage.ref(`portada/foto_portada_fija`);
+                    await ref.put(file);
+                    const url = await ref.getDownloadURL();
+                    await db.collection("config").doc("cover").set({ url: url });
+                    fijarFotoPortada(url);
+                    alert("¡Foto de portada subida y fijada permanentemente!");
+                } catch (err) {
+                    alert("Error al subir portada: " + err.message);
+                }
+            } else {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    localStorage.setItem('album_cover_url', event.target.result);
+                    fijarFotoPortada(event.target.result);
+                    alert("¡Foto de portada fijada permanentemente!");
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // --- MANEJO DE MÚSICA MP3 FIJA E INMODIFICABLE ---
         function cargarMúsica() {
             if (firebaseActive) {
                 db.collection("config").doc("music").get().then((doc) => {
                     if (doc.exists && doc.data().url) {
-                        bgMusic.src = doc.data().url;
+                        fijarCancion(doc.data().url);
                     } else {
                         musicUploadBox.classList.remove('hidden');
                     }
@@ -294,30 +355,33 @@
             } else {
                 const localMusic = localStorage.getItem('album_music_url');
                 if (localMusic) {
-                    bgMusic.src = localMusic;
+                    fijarCancion(localMusic);
                 } else {
                     musicUploadBox.classList.remove('hidden');
                 }
             }
         }
 
-        // Subida de Música MP3 a la Nube
+        function fijarCancion(url) {
+            bgMusic.src = url;
+            musicUploadBox.classList.add('hidden'); // Ocultar y bloquear botón para siempre
+        }
+
         musicFileInput.addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (!file) return;
 
             if (firebaseActive) {
                 try {
-                    const ref = storage.ref(`musica/cancion_principal.mp3`);
+                    const ref = storage.ref(`musica/cancion_fija.mp3`);
                     await ref.put(file);
                     const url = await ref.getDownloadURL();
                     await db.collection("config").doc("music").set({ url: url });
-                    bgMusic.src = url;
-                    musicUploadBox.classList.add('hidden');
+                    fijarCancion(url);
                     bgMusic.play();
                     isMuted = false;
                     actualizarIconoMúsica();
-                    alert("¡Música guardada permanentemente en la nube!");
+                    alert("¡Canción MP3 subida y fijada permanentemente a la nube!");
                 } catch (err) {
                     alert("Error al subir música: " + err.message);
                 }
@@ -325,11 +389,11 @@
                 const reader = new FileReader();
                 reader.onload = (event) => {
                     localStorage.setItem('album_music_url', event.target.result);
-                    bgMusic.src = event.target.result;
-                    musicUploadBox.classList.add('hidden');
+                    fijarCancion(event.target.result);
                     bgMusic.play();
                     isMuted = false;
                     actualizarIconoMúsica();
+                    alert("¡Canción MP3 fijada permanentemente!");
                 };
                 reader.readAsDataURL(file);
             }
@@ -356,7 +420,7 @@
             }
         }
 
-        // Cargar Páginas
+        // --- CÁRGA Y RENDERIZADO DE PÁGINAS DEL ÁLBUM ---
         function cargarPaginas() {
             if (firebaseActive) {
                 db.collection("paginas").orderBy("timestamp", "asc").onSnapshot((snapshot) => {
