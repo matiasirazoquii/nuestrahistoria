@@ -3,19 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nuestro Libro de Amor</title>
+    <title>Nuestra Historia en Fotos 💖</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Font Awesome icons -->
+    <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Montserrat:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&display=swap" rel="stylesheet">
-    <!-- Canvas Confetti -->
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-
-    <!-- Firebase SDKs -->
+    <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Montserrat:wght@300;400;600&family=Playfair+Display:ital,wght@0,600;1,400&family=Sacramento&display=swap" rel="stylesheet">
+    
+    <!-- SDKs de Firebase (Compatibilidad) -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script>
@@ -25,303 +23,215 @@
             theme: {
                 extend: {
                     colors: {
-                        'rose-gold': '#B76E79',
-                        'dusty-rose': '#D8A7B1',
-                        'soft-pink': '#FFF0F3',
-                        'deep-pink': '#FF4D6D',
-                        'romantic-pink': '#FF8FA3',
-                        'dark-black': '#121212',
-                        'charcoal': '#1E1E24',
-                        'velvet-black': '#0A0A0C',
+                        brand: {
+                            pink: '#ff85a2',
+                            lightpink: '#fbb1bd',
+                            darkpink: '#f72585',
+                            black: '#121212',
+                            darkgray: '#1e1e1e',
+                            cream: '#fcf8f2'
+                        }
                     },
                     fontFamily: {
-                        'serif-title': ['Playfair Display', 'serif'],
-                        'script': ['Great Vibes', 'cursive'],
-                        'body': ['Montserrat', 'sans-serif'],
+                        serif: ['Playfair Display', 'serif'],
+                        cursive: ['Great Vibes', 'cursive'],
+                        handwriting: ['Sacramento', 'cursive'],
+                        sans: ['Montserrat', 'sans-serif']
                     }
                 }
             }
         }
     </script>
-
     <style>
-        .paper-texture {
-            background-color: #fdfbf7;
-            background-image: radial-gradient(#e0d7cd 0.5px, transparent 0.5px), radial-gradient(#e0d7cd 0.5px, #fdfbf7 0.5px);
-            background-size: 20px 20px;
-            background-position: 0 0, 10px 10px;
+        .book-shadow {
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), inset 0 0 20px rgba(0,0,0,0.2);
         }
-
-        .spine-middle-shadow {
-            background: linear-gradient(to right, rgba(0,0,0,0.18) 0%, rgba(0,0,0,0.05) 40%, rgba(0,0,0,0.0) 50%, rgba(0,0,0,0.05) 60%, rgba(0,0,0,0.18) 100%);
+        .spine {
+            background: linear-gradient(to right, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.1) 10%, rgba(255,255,255,0.1) 15%, rgba(0,0,0,0.2) 20%, rgba(0,0,0,0) 100%);
         }
-
-        .cover-texture {
-            background: linear-gradient(135deg, #121212 0%, #1a1a24 50%, #0d0d11 100%);
-            border: 3px solid #B76E79;
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6), inset 0 0 15px rgba(183, 110, 121, 0.3);
+        .tape {
+            background-color: rgba(255, 255, 255, 0.4);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            backdrop-filter: blur(1px);
         }
-
-        @keyframes slideInCover {
-            0% {
-                opacity: 0;
-                transform: translateY(50px) scale(0.95);
-            }
-            100% {
-                opacity: 1;
-                transform: translateY(0) scale(1);
-            }
+        .page-turn-left {
+            transform-origin: left center;
+            transition: transform 0.6s ease-in-out;
         }
-
-        .animate-cover-slide {
-            animation: slideInCover 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        .page-turn-right {
+            transform-origin: right center;
+            transition: transform 0.6s ease-in-out;
         }
-
-        .photo-tape {
-            position: absolute;
-            width: 70px;
-            height: 22px;
-            background-color: rgba(255, 240, 243, 0.65);
-            backdrop-filter: blur(2px);
-            border: 1px solid rgba(255, 255, 255, 0.5);
-            transform: rotate(-5deg);
-            z-index: 10;
+        @keyframes slideUp {
+            from { transform: translateY(60px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
         }
-
-        .photo-tape-right {
-            transform: rotate(6deg);
-        }
-
-        .perspective-1000 {
-            perspective: 2000px;
-        }
-
-        .page-shadow-left {
-            box-shadow: -10px 0 25px rgba(0,0,0,0.12);
-        }
-
-        .page-shadow-right {
-            box-shadow: 10px 0 25px rgba(0,0,0,0.12);
-        }
-
-        ::-webkit-scrollbar {
-            width: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #1e1e24;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #b76e79;
-            border-radius: 4px;
-        }
-
-        @keyframes pulse-heart {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.15); }
-        }
-        .animate-heart {
-            animation: pulse-heart 2s infinite ease-in-out;
+        .animate-slide-up {
+            animation: slideUp 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
     </style>
 </head>
-<body class="bg-velvet-black text-gray-100 font-body min-h-screen flex flex-col justify-between overflow-x-hidden selection:bg-rose-gold selection:text-white">
+<body class="bg-brand-black text-gray-200 font-sans min-h-screen flex flex-col justify-between selection:bg-brand-pink selection:text-white overflow-x-hidden">
 
-    <header class="w-full bg-charcoal/90 backdrop-blur-md border-b border-rose-gold/30 px-4 py-3 sticky top-0 z-40 shadow-lg">
-        <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
-            <div class="flex items-center gap-3">
-                <i class="fa-solid font-bold text-2xl text-deep-pink fa-heart animate-heart"></i>
-                <h1 class="font-serif-title font-bold text-lg sm:text-xl text-rose-gold tracking-wider">
-                    Nuestro Libro de Amor
-                </h1>
-            </div>
+    <!-- Reproductor de audio oculto -->
+    <audio id="bg-music" loop preload="auto"></audio>
 
-            <!-- Status Indicator -->
-            <div class="flex items-center gap-2 text-xs text-dusty-rose bg-dark-black/60 px-3 py-1 rounded-full border border-rose-gold/20 cursor-pointer" onclick="openRulesModal()" title="Clic para ayuda con Firebase">
-                <span id="db-status-dot" class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
-                <span id="db-status-text">Conectando a Firebase...</span>
-                <i class="fa-solid fa-circle-info text-rose-gold/70 text-xs ml-1"></i>
-            </div>
-
-            <!-- Action Buttons -->
-            <div class="flex items-center gap-2 sm:gap-3 flex-wrap">
-                <button id="btn-edit-cover" onclick="openCoverModal()" class="px-3 py-1.5 text-xs sm:text-sm bg-charcoal hover:bg-rose-gold/20 text-rose-gold border border-rose-gold/50 rounded-full transition-all duration-300 flex items-center gap-1.5 shadow">
-                    <i class="fa-solid fa-pen-to-square"></i> <span class="hidden sm:inline">Editar</span> Portada
-                </button>
-                <button id="btn-add-page" onclick="openPageModal(null)" class="px-3.5 py-1.5 text-xs sm:text-sm bg-rose-gold hover:bg-rose-gold/80 text-white font-medium rounded-full transition-all duration-300 shadow-md flex items-center gap-1.5">
-                    <i class="fa-solid fa-plus"></i> Subir <span class="hidden sm:inline">Foto</span>
-                </button>
-                <button id="btn-slideshow" onclick="toggleSlideshow()" class="px-3.5 py-1.5 text-xs sm:text-sm bg-deep-pink hover:bg-deep-pink/80 text-white font-medium rounded-full transition-all duration-300 shadow-md flex items-center gap-1.5">
-                    <i class="fa-solid fa-play" id="slideshow-icon"></i> <span id="slideshow-text">Presentación</span>
-                </button>
-            </div>
+    <!-- Header / Barra de Navegación -->
+    <header class="p-4 bg-brand-darkgray/80 backdrop-blur-md border-b border-brand-pink/20 sticky top-0 z-50 flex justify-between items-center">
+        <div class="flex items-center gap-2">
+            <i class="fa-solid fa-book-heart text-brand-pink text-2xl"></i>
+            <span class="font-serif font-bold text-lg text-white tracking-wide">Nuestra Historia</span>
+        </div>
+        
+        <div class="flex items-center gap-3">
+            <button id="btn-add-page" class="px-3 py-1.5 bg-brand-pink hover:bg-brand-darkpink text-white text-xs md:text-sm font-semibold rounded-full transition-all duration-300 flex items-center gap-2 shadow-lg shadow-brand-pink/20">
+                <i class="fa-solid fa-plus"></i> <span class="hidden sm:inline">Nueva Página</span>
+            </button>
+            <button id="btn-slideshow" class="px-3 py-1.5 bg-brand-darkgray border border-brand-pink/40 hover:border-brand-pink text-brand-pink text-xs md:text-sm rounded-full transition-all duration-300 flex items-center gap-1.5">
+                <i class="fa-solid fa-play"></i> <span class="hidden sm:inline">Presentación</span>
+            </button>
+            <!-- Único botón para la música: Silenciar / Activar -->
+            <button id="btn-mute-toggle" title="Silenciar / Activar sonido" class="w-10 h-10 bg-brand-pink/20 hover:bg-brand-pink/40 text-brand-pink border border-brand-pink/50 rounded-full flex items-center justify-center transition-all duration-300 shadow-md">
+                <i id="mute-icon" class="fa-solid fa-volume-xmark text-lg"></i>
+            </button>
         </div>
     </header>
 
-    <main class="flex-grow flex items-center justify-center p-2 sm:p-6 my-2 perspective-1000">
-        <div id="book-viewport" class="relative w-full max-w-5xl aspect-[4/3] sm:aspect-[16/10] md:aspect-[16/9] max-h-[80vh] flex items-center justify-center transition-all duration-500">
-            <div id="album-book" class="w-full h-full relative rounded-2xl transition-all duration-700 shadow-2xl flex">
-                <!-- Pages generated dynamically -->
+    <!-- Contenedor Principal del Libro -->
+    <main class="flex-1 flex flex-col items-center justify-center p-4 md:p-8 relative my-auto">
+        
+        <!-- Vista del Libro -->
+        <div id="book-container" class="w-full max-w-4xl animate-slide-up">
+            
+            <!-- PORTADA -->
+            <div id="cover-view" class="relative bg-gradient-to-br from-brand-darkgray via-black to-brand-darkgray border-8 border-brand-pink/30 rounded-2xl p-6 md:p-12 book-shadow flex flex-col items-center text-center overflow-hidden min-h-[520px] justify-between">
+                
+                <!-- Adorno en esquinas -->
+                <div class="absolute top-3 left-3 text-brand-pink/40 text-2xl"><i class="fa-solid fa-feather-pointed"></i></div>
+                <div class="absolute top-3 right-3 text-brand-pink/40 text-2xl"><i class="fa-solid fa-feather-pointed transform scale-x-[-1]"></i></div>
+
+                <!-- Título -->
+                <div class="space-y-2 z-10 my-2">
+                    <h1 id="cover-title-text" class="font-serif text-3xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-brand-lightpink via-brand-pink to-brand-darkpink">
+                        Nuestra Historia en Fotos
+                    </h1>
+                    <p id="cover-subtitle-text" class="font-cursive text-2xl md:text-3xl text-brand-lightpink">
+                        De parte del amor de tu vida con muchísimo amor
+                    </p>
+                </div>
+
+                <!-- Marco con Foto Fija -->
+                <div class="relative group my-4 z-10 w-full max-w-xs md:max-w-sm">
+                    <div class="absolute -inset-1 bg-gradient-to-r from-brand-pink to-brand-darkpink rounded-lg blur opacity-40"></div>
+                    <div class="relative bg-brand-black p-3 rounded-lg border border-brand-pink/40 shadow-2xl">
+                        <div class="relative aspect-[3/4] overflow-hidden rounded-md bg-zinc-900 flex items-center justify-center">
+                            <img id="cover-photo" src="" alt="Portada" class="w-full h-full object-cover">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Posdata y Nombres -->
+                <div class="z-10 w-full max-w-lg mt-2 space-y-3">
+                    <p id="cover-ps-text" class="font-handwriting text-xl md:text-2xl text-pink-200 italic">
+                        Posdata: mi amor por vos es más grande que el universo
+                    </p>
+
+                    <div id="music-upload-box" class="pt-2 hidden">
+                        <label for="music-file-input" class="inline-flex items-center gap-2 px-4 py-2 bg-brand-pink/20 hover:bg-brand-pink/40 border border-brand-pink/50 text-brand-pink rounded-full cursor-pointer text-xs transition-all">
+                            <i class="fa-solid fa-cloud-arrow-up"></i> <span>🎵 Subir canción MP3</span>
+                        </label>
+                        <input type="file" id="music-file-input" accept="audio/mp3,audio/*" class="hidden">
+                    </div>
+                </div>
+
+                <div class="mt-6 z-10">
+                    <button id="btn-open-book" class="px-8 py-3 bg-gradient-to-r from-brand-pink to-brand-darkpink text-white font-serif font-semibold rounded-full shadow-lg shadow-brand-pink/30 hover:scale-105 active:scale-95 transition-all duration-300 flex items-center gap-3 text-lg">
+                        <span>Abrir Álbum</span>
+                        <i class="fa-solid fa-heart"></i>
+                    </button>
+                </div>
             </div>
+
+            <!-- INTERIOR DEL LIBRO (Páginas Dobles) -->
+            <div id="pages-view" class="hidden relative bg-brand-cream text-zinc-800 rounded-xl book-shadow min-h-[550px] border-4 border-amber-900/20 overflow-hidden">
+                <div class="absolute inset-y-0 left-1/2 w-12 -ml-6 spine z-20 pointer-events-none"></div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 min-h-[550px]">
+                    <!-- Página Izquierda -->
+                    <div id="left-page" class="p-6 md:p-8 flex flex-col justify-between border-b md:border-b-0 md:border-r border-amber-900/10 relative">
+                        <div class="absolute top-2 left-2 text-xs font-serif text-amber-900/40" id="left-page-num">Pág. 1</div>
+                        <div id="left-page-content" class="flex-1 flex flex-col justify-center items-center"></div>
+                    </div>
+
+                    <!-- Página Derecha -->
+                    <div id="right-page" class="p-6 md:p-8 flex flex-col justify-between relative bg-amber-50/30">
+                        <div class="absolute top-2 right-2 text-xs font-serif text-amber-900/40" id="right-page-num">Pág. 2</div>
+                        <div id="right-page-content" class="flex-1 flex flex-col justify-center items-center"></div>
+                    </div>
+                </div>
+            </div>
+
         </div>
+
+        <!-- Botones de Navegación -->
+        <div id="nav-controls" class="hidden flex items-center justify-between w-full max-w-4xl mt-6 px-4">
+            <button id="btn-prev" class="px-5 py-2.5 bg-brand-darkgray hover:bg-zinc-800 text-white rounded-full border border-brand-pink/30 transition-all flex items-center gap-2 text-sm shadow-md">
+                <i class="fa-solid fa-chevron-left"></i> Anterior
+            </button>
+            <button id="btn-close-book" class="px-4 py-2 text-gray-400 hover:text-white text-xs underline transition-all">
+                Cerrar Álbum
+            </button>
+            <button id="btn-next" class="px-5 py-2.5 bg-brand-pink hover:bg-brand-darkpink text-white rounded-full transition-all flex items-center gap-2 text-sm shadow-md">
+                Siguiente <i class="fa-solid fa-chevron-right"></i>
+            </button>
+        </div>
+
     </main>
 
-    <footer class="w-full bg-charcoal/90 backdrop-blur-md border-t border-rose-gold/30 px-4 py-3 z-30">
-        <div class="max-w-4xl mx-auto flex items-center justify-between">
-            <button id="btn-prev" onclick="prevPage()" class="px-4 py-2 bg-dark-black hover:bg-rose-gold/20 text-rose-gold rounded-full border border-rose-gold/40 transition-all flex items-center gap-2 disabled:opacity-30 disabled:cursor-not-allowed">
-                <i class="fa-solid fa-chevron-left"></i> <span class="hidden sm:inline">Anterior</span>
-            </button>
-
-            <div class="flex items-center gap-3">
-                <span id="page-indicator" class="font-serif-title text-sm sm:text-base text-dusty-rose font-medium">
-                    Portada
-                </span>
-                <span class="text-xs text-gray-500">|</span>
-                <div id="page-dots" class="flex gap-1.5 overflow-x-auto max-w-[150px] sm:max-w-[300px] py-1">
-                    <!-- Navigation dots -->
-                </div>
-            </div>
-
-            <button id="btn-next" onclick="nextPage()" class="px-4 py-2 bg-dark-black hover:bg-rose-gold/20 text-rose-gold rounded-full border border-rose-gold/40 transition-all flex items-center gap-2 disabled:opacity-30 disabled:cursor-not-allowed">
-                <span class="hidden sm:inline">Siguiente</span> <i class="fa-solid fa-chevron-right"></i>
-            </button>
-        </div>
-    </footer>
-
-    <!-- Cover Edit Modal -->
-    <div id="cover-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-charcoal border border-rose-gold/50 rounded-2xl max-w-md w-full p-6 shadow-2xl relative text-gray-200">
-            <button onclick="closeCoverModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white">
-                <i class="fa-solid fa-xmark text-xl"></i>
-            </button>
-            <h2 class="font-serif-title text-xl text-rose-gold font-bold mb-4 flex items-center gap-2">
-                <i class="fa-solid fa-bookmark text-deep-pink"></i> Personalizar Portada
-            </h2>
-
-            <div class="space-y-4 text-sm">
-                <div>
-                    <label class="block text-xs uppercase font-semibold text-gray-400 mb-1">Título del Libro</label>
-                    <input type="text" id="input-cover-title" class="w-full bg-dark-black border border-gray-700 rounded-lg p-2.5 text-white focus:border-rose-gold focus:outline-none" placeholder="Ej. Nuestra historia en fotos">
-                </div>
-                <div>
-                    <label class="block text-xs uppercase font-semibold text-gray-400 mb-1">Subtítulo / Dedicatoria</label>
-                    <input type="text" id="input-cover-names" class="w-full bg-dark-black border border-gray-700 rounded-lg p-2.5 text-white focus:border-rose-gold focus:outline-none" placeholder="Ej. De parte del amor de tu vida...">
-                </div>
-                <div>
-                    <label class="block text-xs uppercase font-semibold text-gray-400 mb-1">Posdata / Frase Final</label>
-                    <input type="text" id="input-cover-date" class="w-full bg-dark-black border border-gray-700 rounded-lg p-2.5 text-white focus:border-rose-gold focus:outline-none" placeholder="Ej. Posdata: mi amor por vos es más grande...">
-                </div>
-                
-                <div class="bg-dark-black/70 p-3 rounded-lg border border-rose-gold/30 flex items-center gap-2.5 text-xs text-rose-gold">
-                    <i class="fa-solid fa-lock text-deep-pink text-sm shrink-0"></i>
-                    <span>La foto de portada está fijada permanentemente con tu foto especial con flores ❤️</span>
-                </div>
-
-                <div id="cover-loading" class="hidden text-center text-xs text-rose-gold animate-pulse py-1">
-                    <i class="fa-solid fa-spinner fa-spin mr-1"></i> Guardando cambios...
-                </div>
-
-                <div class="flex gap-2 pt-2">
-                    <button onclick="saveCoverDetails()" class="flex-1 py-2.5 bg-rose-gold hover:bg-rose-gold/80 text-white font-semibold rounded-lg text-xs transition-all shadow">
-                        Guardar Cambios
-                    </button>
-                    <button onclick="closeCoverModal()" class="px-4 py-2.5 bg-dark-black hover:bg-gray-800 text-gray-300 rounded-lg text-xs">
-                        Cancelar
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Upload/Edit Page Modal -->
+    <!-- Modal para Agregar Página -->
     <div id="page-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-charcoal border border-rose-gold/50 rounded-2xl max-w-md w-full p-6 shadow-2xl relative text-gray-200">
-            <button onclick="closePageModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white">
-                <i class="fa-solid fa-xmark text-xl"></i>
-            </button>
-            <h2 id="modal-title-action" class="font-serif-title text-xl text-rose-gold font-bold mb-4 flex items-center gap-2">
-                <i class="fa-solid fa-heart-circle-plus text-deep-pink"></i> Subir Nuevo Recuerdo
-            </h2>
-
-            <div class="space-y-4 text-sm">
+        <div class="bg-brand-darkgray border border-brand-pink/30 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div class="flex justify-between items-center border-b border-zinc-800 pb-3">
+                <h3 class="font-serif text-xl font-bold text-white">Agregar Recuerdo</h3>
+                <button id="btn-close-page-modal" class="text-gray-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            
+            <form id="form-add-page" class="space-y-4">
                 <div>
-                    <label class="block text-xs uppercase font-semibold text-gray-400 mb-1">Seleccionar Foto</label>
-                    <input type="file" id="input-page-photo" accept="image/*" class="w-full bg-dark-black border border-gray-700 rounded-lg p-2 text-xs text-gray-300 focus:border-rose-gold focus:outline-none file:mr-3 file:py-1.5 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-rose-gold file:text-white hover:file:bg-rose-gold/80 cursor-pointer">
+                    <label class="block text-xs font-semibold text-gray-300 mb-1">Seleccionar Foto</label>
+                    <input type="file" id="input-page-image" accept="image/*" required class="w-full text-xs text-gray-400 file:mr-3 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-brand-pink file:text-white hover:file:bg-brand-darkpink cursor-pointer">
                 </div>
 
                 <div>
-                    <label class="block text-xs uppercase font-semibold text-gray-400 mb-1">Frase o Dedicatoria</label>
-                    <textarea id="input-page-text" rows="3" class="w-full bg-dark-black border border-gray-700 rounded-lg p-2.5 text-white focus:border-rose-gold focus:outline-none text-sm" placeholder="Escribe un lindo recuerdo o frase aquí..."></textarea>
+                    <label class="block text-xs font-semibold text-gray-300 mb-1">Frase / Dedicatoria</label>
+                    <textarea id="input-page-caption" rows="3" required placeholder="Escribe un mensaje lindo..." class="w-full bg-zinc-900 border border-zinc-700 rounded-lg p-2.5 text-sm text-white focus:border-brand-pink focus:outline-none"></textarea>
                 </div>
 
                 <div>
-                    <label class="block text-xs uppercase font-semibold text-gray-400 mb-1">Estilo de Letra</label>
-                    <select id="input-page-font" class="w-full bg-dark-black border border-gray-700 rounded-lg p-2.5 text-white focus:border-rose-gold focus:outline-none text-xs">
-                        <option value="font-script">Cursiva Romántica (Great Vibes)</option>
-                        <option value="font-serif-title">Serif Elegante (Playfair Display)</option>
-                        <option value="font-body">Moderna Limpia (Montserrat)</option>
+                    <label class="block text-xs font-semibold text-gray-300 mb-1">Estilo de Letra</label>
+                    <select id="input-page-font" class="w-full bg-zinc-900 border border-zinc-700 rounded-lg p-2 text-xs text-white focus:border-brand-pink focus:outline-none">
+                        <option value="font-handwriting">Manuscrita (Sacramento)</option>
+                        <option value="font-cursive">Cursiva Elegante (Great Vibes)</option>
+                        <option value="font-serif">Serif Clásica (Playfair)</option>
                     </select>
                 </div>
 
-                <div id="page-loading" class="hidden text-center text-xs text-rose-gold animate-pulse py-1">
-                    <i class="fa-solid fa-spinner fa-spin mr-1"></i> Subiendo imagen a la nube...
+                <div class="pt-2 flex justify-end gap-2">
+                    <button type="button" id="btn-cancel-page" class="px-4 py-2 text-xs text-gray-400 hover:text-white">Cancelar</button>
+                    <button type="submit" id="btn-save-page" class="px-5 py-2 bg-brand-pink hover:bg-brand-darkpink text-white rounded-full text-xs font-semibold">Guardar Recuerdo</button>
                 </div>
-
-                <div class="flex gap-2 pt-2">
-                    <button onclick="savePageDetails()" class="flex-1 py-2.5 bg-rose-gold hover:bg-rose-gold/80 text-white font-semibold rounded-lg text-xs transition-all shadow">
-                        Guardar Página
-                    </button>
-                    <button id="btn-delete-page" onclick="deleteCurrentPage()" class="hidden px-3 py-2.5 bg-red-900/60 hover:bg-red-800 text-red-200 border border-red-500/30 rounded-lg text-xs">
-                        <i class="fa-solid fa-trash"></i>
-                    </button>
-                    <button onclick="closePageModal()" class="px-4 py-2.5 bg-dark-black hover:bg-gray-800 text-gray-300 rounded-lg text-xs">
-                        Cancelar
-                    </button>
-                </div>
-            </div>
+            </form>
         </div>
     </div>
 
-    <!-- Firebase Rules Help Modal -->
-    <div id="rules-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-charcoal border border-rose-gold/50 rounded-2xl max-w-md w-full p-6 shadow-2xl relative text-gray-200">
-            <button onclick="closeRulesModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white">
-                <i class="fa-solid fa-xmark text-xl"></i>
-            </button>
-            <h2 class="font-serif-title text-xl text-rose-gold font-bold mb-3 flex items-center gap-2">
-                <i class="fa-solid fa-shield-halved text-deep-pink"></i> Permisos de Firebase
-            </h2>
-            <p class="text-xs text-gray-300 leading-relaxed mb-3">
-                Para permitir sincronización en la nube entre dispositivos, publica esta regla en <strong class="text-white">Firebase Console</strong> &gt; <strong class="text-white">Firestore Database</strong> &gt; <strong class="text-white">Reglas</strong>:
-            </p>
+    <!-- Footer -->
+    <footer class="p-4 text-center text-xs text-gray-500 border-t border-zinc-900">
+        Hecho con <i class="fa-solid fa-heart text-brand-pink"></i> para el amor de mi vida
+    </footer>
 
-            <div class="relative group mb-3">
-                <pre id="firestore-rules-text" class="bg-dark-black p-3 rounded-lg text-[11px] text-green-400 font-mono border border-gray-800 overflow-x-auto">rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if true;
-    }
-  }
-}</pre>
-                <button onclick="copyRulesToClipboard()" class="mt-2 w-full py-1.5 bg-rose-gold/20 hover:bg-rose-gold/40 text-rose-gold border border-rose-gold/40 rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-copy"></i> <span id="copy-btn-text">Copiar Código de Reglas</span>
-                </button>
-            </div>
-
-            <div class="bg-red-950/40 border border-red-500/30 rounded-lg p-2.5 mb-3 text-[11px] text-red-200 flex items-start gap-2">
-                <i class="fa-solid fa-triangle-exclamation text-red-400 mt-0.5 shrink-0"></i>
-                <span><strong>¡Atención!</strong> Si usas traductor de navegador, no dejes que traduzca <code>rules_version</code> a <code>versión</code> con tilde 'ó', ya que Firebase dará error de sintaxis.</span>
-            </div>
-
-            <p class="text-xs text-gray-400 mb-4">
-                <i class="fa-solid fa-circle-check text-green-400 mr-1"></i> Mientras tanto, tus cambios se guardarán localmente en tu navegador.
-            </p>
-            <button onclick="closeRulesModal()" class="w-full py-2 bg-rose-gold text-white rounded-lg text-xs font-semibold hover:bg-rose-gold/80">Entendido</button>
-        </div>
-    </div>
-
+    <!-- Lógica JavaScript -->
     <script>
-        // FIREBASE CONFIGURATION PROVIDED BY USER
+        // Configuración de Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyDsFE-6SKRH00CQXFdZOApCS-V8sEJ5Krw",
             authDomain: "album-nuestra-historia.firebaseapp.com",
@@ -331,540 +241,287 @@ service cloud.firestore {
             appId: "1:303479801921:web:93e3fb77e769a805635ec0"
         };
 
-        // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
-        const storage = firebase.storage();
+        // Inicializar Firebase
+        let db = null;
+        let storage = null;
+        let firebaseActive = false;
 
-        let useLocalStorageFallback = false;
+        try {
+            firebase.initializeApp(firebaseConfig);
+            db = firebase.firestore();
+            storage = firebase.storage();
+            firebaseActive = true;
+        } catch (e) {
+            console.warn("Firebase no activo, usando almacenamiento local.", e);
+        }
 
-        // FIXED COVER PHOTO (Uses the attached image file)
-        const FIXED_COVER_PHOTO = "WhatsApp Image 2026-06-27 at 1.59.36 AM.jpeg";
-
-        let albumData = {
-            cover: {
-                title: "Nuestra historia en fotos",
-                names: "De parte del amor de tu vida con muchísimo amor",
-                date: "Posdata: mi amor por vos es más grande que el universo",
-                photoUrl: FIXED_COVER_PHOTO
-            },
-            pages: []
-        };
-
-        let currentSpread = 0; // 0 = Cover
-        let editingPageIndex = null;
+        // Estado de la Aplicación
+        let albumPages = [];
+        let currentSpreadIndex = 0; // 0 = Portada, 1 = Pág 1 y 2, etc.
         let slideshowInterval = null;
+        let isMuted = true;
 
-        window.onload = function() {
-            loadLocalBackup();
-            initFirebaseListeners();
-            renderAlbum();
-            updateNavigation();
-        };
+        // Elementos DOM
+        const coverView = document.getElementById('cover-view');
+        const pagesView = document.getElementById('pages-view');
+        const navControls = document.getElementById('nav-controls');
+        const bgMusic = document.getElementById('bg-music');
+        const btnMuteToggle = document.getElementById('btn-mute-toggle');
+        const muteIcon = document.getElementById('mute-icon');
+        const musicUploadBox = document.getElementById('music-upload-box');
+        const musicFileInput = document.getElementById('music-file-input');
 
-        function updateStatusUI(status, text) {
-            const dot = document.getElementById('db-status-dot');
-            const statusText = document.getElementById('db-status-text');
-            if (dot && statusText) {
-                if (status === 'connected') {
-                    dot.className = 'w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse';
-                } else if (status === 'local') {
-                    dot.className = 'w-2.5 h-2.5 rounded-full bg-orange-400';
-                } else {
-                    dot.className = 'w-2.5 h-2.5 rounded-full bg-yellow-500';
-                }
-                statusText.textContent = text;
+        // Foto Fija por Defecto
+        const DEFAULT_COVER_PHOTO = "WhatsApp Image 2026-06-27 at 1.59.36 AM.jpeg";
+        document.getElementById('cover-photo').src = DEFAULT_COVER_PHOTO;
+
+        // Inicialización
+        window.addEventListener('DOMContentLoaded', () => {
+            cargarMúsica();
+            cargarPaginas();
+            
+            // Iniciar música con interacción
+            document.body.addEventListener('click', iniciarAudioAlContacto, { once: true });
+        });
+
+        function iniciarAudioAlContacto() {
+            if (bgMusic.src && isMuted) {
+                bgMusic.play().then(() => {
+                    isMuted = false;
+                    actualizarIconoMúsica();
+                }).catch(() => {});
             }
         }
 
-        function loadLocalBackup() {
-            try {
-                const saved = localStorage.getItem('album_local_backup');
-                if (saved) {
-                    const parsed = JSON.parse(saved);
-                    if (parsed.cover) albumData.cover = { ...albumData.cover, ...parsed.cover, photoUrl: FIXED_COVER_PHOTO };
-                    if (parsed.pages && Array.isArray(parsed.pages)) albumData.pages = parsed.pages;
-                }
-            } catch (e) {
-                console.warn("Error leyendo respaldo local:", e);
-            }
-        }
-
-        function saveLocalBackup() {
-            try {
-                albumData.cover.photoUrl = FIXED_COVER_PHOTO;
-                localStorage.setItem('album_local_backup', JSON.stringify(albumData));
-            } catch (e) {
-                console.warn("No se pudo guardar respaldo local:", e);
-            }
-        }
-
-        function enableLocalStorageFallback(reason) {
-            useLocalStorageFallback = true;
-            updateStatusUI('local', "Modo Local (Clic para Nube)");
-            renderAlbum();
-            updateNavigation();
-        }
-
-        function openRulesModal() {
-            document.getElementById('rules-modal').classList.remove('hidden');
-        }
-
-        function closeRulesModal() {
-            document.getElementById('rules-modal').classList.add('hidden');
-        }
-
-        function copyRulesToClipboard() {
-            const rulesText = `rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if true;
-    }
-  }
-}`;
-            const tempInput = document.createElement("textarea");
-            tempInput.value = rulesText;
-            document.body.appendChild(tempInput);
-            tempInput.select();
-            document.execCommand("copy");
-            document.body.removeChild(tempInput);
-
-            const btnText = document.getElementById('copy-btn-text');
-            if (btnText) {
-                btnText.textContent = "¡Copiado al portapapeles!";
-                setTimeout(() => {
-                    btnText.textContent = "Copiar Código de Reglas";
-                }, 2500);
-            }
-        }
-
-        function initFirebaseListeners() {
-            updateStatusUI('connecting', "Conectando...");
-
-            db.collection("config").doc("cover").onSnapshot((doc) => {
-                if (doc.exists) {
-                    albumData.cover = { ...albumData.cover, ...doc.data(), photoUrl: FIXED_COVER_PHOTO };
-                    saveLocalBackup();
-                    renderAlbum();
-                }
-            }, (error) => {
-                console.warn("Cover snapshot error:", error);
-                enableLocalStorageFallback("Permisos requeridos en Firebase");
-            });
-
-            db.collection("paginas").orderBy("createdAt", "asc").onSnapshot((snapshot) => {
-                albumData.pages = [];
-                snapshot.forEach((doc) => {
-                    albumData.pages.push({
-                        id: doc.id,
-                        ...doc.data()
-                    });
+        // --- MANEJO DE MÚSICA ---
+        function cargarMúsica() {
+            if (firebaseActive) {
+                db.collection("config").doc("music").get().then((doc) => {
+                    if (doc.exists && doc.data().url) {
+                        bgMusic.src = doc.data().url;
+                    } else {
+                        musicUploadBox.classList.remove('hidden');
+                    }
+                }).catch(() => {
+                    musicUploadBox.classList.remove('hidden');
                 });
-
-                useLocalStorageFallback = false;
-                saveLocalBackup();
-                updateStatusUI('connected', "Nube Conectada");
-                renderAlbum();
-                updateNavigation();
-            }, (error) => {
-                console.warn("Pages snapshot error:", error);
-                enableLocalStorageFallback("Permisos denegados");
-            });
-        }
-
-        function getTotalSpreads() {
-            return 1 + Math.max(1, Math.ceil(albumData.pages.length / 2));
-        }
-
-        function renderAlbum() {
-            const container = document.getElementById('album-book');
-            if (!container) return;
-            container.innerHTML = '';
-
-            if (currentSpread === 0) {
-                // RENDER COVER
-                container.className = "w-full max-w-lg mx-auto h-full cover-texture rounded-2xl flex flex-col justify-between p-5 sm:p-8 relative overflow-hidden transition-all duration-700 animate-cover-slide";
-                
-                const cover = albumData.cover;
-                container.innerHTML = `
-                    <div class="absolute top-3 left-3 w-8 h-8 border-t-2 border-l-2 border-rose-gold/60"></div>
-                    <div class="absolute top-3 right-3 w-8 h-8 border-t-2 border-r-2 border-rose-gold/60"></div>
-                    <div class="absolute bottom-3 left-3 w-8 h-8 border-b-2 border-l-2 border-rose-gold/60"></div>
-                    <div class="absolute bottom-3 right-3 w-8 h-8 border-b-2 border-r-2 border-rose-gold/60"></div>
-
-                    <div class="text-center pt-2 z-10">
-                        <i class="fa-solid fa-heart text-deep-pink text-xl mb-1 animate-heart"></i>
-                        <h2 class="font-serif-title text-xl sm:text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-dusty-rose via-rose-gold to-romantic-pink tracking-wide">
-                            ${escapeHtml(cover.title)}
-                        </h2>
-                        <div class="w-20 h-0.5 bg-rose-gold/40 mx-auto my-1.5"></div>
-                        <p class="font-script text-lg sm:text-xl text-rose-gold font-medium leading-tight px-4">
-                            ${escapeHtml(cover.names)}
-                        </p>
-                    </div>
-
-                    <div class="my-2 flex justify-center items-center z-10 flex-1 min-h-0">
-                        <div class="relative p-2 bg-charcoal/90 border border-rose-gold/50 rounded-xl shadow-2xl max-h-[220px] sm:max-h-[260px] overflow-hidden group">
-                            <img src="${cover.photoUrl}" alt="Portada" class="max-h-[200px] sm:max-h-[240px] w-auto object-cover rounded-lg shadow-md transition-transform duration-500 group-hover:scale-105" onerror="this.src='https://placehold.co/600x400/121212/B76E79?text=Nuestra+Foto'">
-                        </div>
-                    </div>
-
-                    <div class="text-center pb-1 z-10">
-                        <p class="font-serif-title italic text-xs sm:text-sm text-romantic-pink/90 tracking-wide px-2">
-                            "${escapeHtml(cover.date)}"
-                        </p>
-                        <p class="text-[10px] text-gray-500 mt-2">Haz clic en "Siguiente" para abrir nuestro libro ❤️</p>
-                    </div>
-                `;
             } else {
-                // RENDER PAGES
-                container.className = "w-full h-full bg-charcoal rounded-2xl flex border-2 border-rose-gold/40 shadow-2xl relative overflow-hidden transition-all duration-700";
-
-                const pageIndexLeft = (currentSpread - 1) * 2;
-                const pageIndexRight = pageIndexLeft + 1;
-
-                const leftPageData = albumData.pages[pageIndexLeft];
-                const rightPageData = albumData.pages[pageIndexRight];
-
-                const leftPageHTML = renderSinglePageHTML(leftPageData, pageIndexLeft, 'left');
-                const rightPageHTML = renderSinglePageHTML(rightPageData, pageIndexRight, 'right');
-
-                container.innerHTML = `
-                    <div class="w-1/2 h-full paper-texture page-shadow-left border-r border-gray-300/40 relative flex flex-col justify-between p-3 sm:p-6 text-gray-800">
-                        ${leftPageHTML}
-                    </div>
-
-                    <div class="absolute inset-y-0 left-1/2 -translate-x-1/2 w-8 spine-middle-shadow z-20 pointer-events-none"></div>
-
-                    <div class="w-1/2 h-full paper-texture page-shadow-right relative flex flex-col justify-between p-3 sm:p-6 text-gray-800">
-                        ${rightPageHTML}
-                    </div>
-                `;
+                const localMusic = localStorage.getItem('album_music_url');
+                if (localMusic) {
+                    bgMusic.src = localMusic;
+                } else {
+                    musicUploadBox.classList.remove('hidden');
+                }
             }
-
-            renderDots();
         }
 
-        function renderSinglePageHTML(pageData, index, side) {
-            if (!pageData) {
+        musicFileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            if (firebaseActive) {
+                try {
+                    const ref = storage.ref(`musica/cancion_principal.mp3`);
+                    await ref.put(file);
+                    const url = await ref.getDownloadURL();
+                    await db.collection("config").doc("music").set({ url: url });
+                    bgMusic.src = url;
+                    musicUploadBox.classList.add('hidden');
+                    bgMusic.play();
+                    isMuted = false;
+                    actualizarIconoMúsica();
+                    alert("¡Música guardada permanentemente!");
+                } catch (err) {
+                    alert("Error al subir música: " + err.message);
+                }
+            } else {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    localStorage.setItem('album_music_url', event.target.result);
+                    bgMusic.src = event.target.result;
+                    musicUploadBox.classList.add('hidden');
+                    bgMusic.play();
+                    isMuted = false;
+                    actualizarIconoMúsica();
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        btnMuteToggle.addEventListener('click', () => {
+            if (!bgMusic.src) return;
+            if (bgMusic.paused) {
+                bgMusic.play();
+                isMuted = false;
+            } else {
+                bgMusic.pause();
+                isMuted = true;
+            }
+            actualizarIconoMúsica();
+        });
+
+        function actualizarIconoMúsica() {
+            if (isMuted || bgMusic.paused) {
+                muteIcon.className = "fa-solid fa-volume-xmark text-lg text-brand-pink";
+            } else {
+                muteIcon.className = "fa-solid fa-volume-high text-lg text-brand-pink animate-pulse";
+            }
+        }
+
+        // --- MANEJO DE PÁGINAS DE FOTOS ---
+        function cargarPaginas() {
+            if (firebaseActive) {
+                db.collection("paginas").orderBy("timestamp", "asc").onSnapshot((snapshot) => {
+                    albumPages = [];
+                    snapshot.forEach((doc) => {
+                        albumPages.push({ id: doc.id, ...doc.data() });
+                    });
+                    if (currentSpreadIndex > 0) renderizarLibro();
+                });
+            } else {
+                const localData = localStorage.getItem('album_pages');
+                albumPages = localData ? JSON.parse(localData) : [];
+                if (currentSpreadIndex > 0) renderizarLibro();
+            }
+        }
+
+        // Navegación
+        document.getElementById('btn-open-book').addEventListener('click', () => {
+            coverView.classList.add('hidden');
+            pagesView.classList.remove('hidden');
+            navControls.classList.remove('hidden');
+            currentSpreadIndex = 1;
+            renderizarLibro();
+        });
+
+        document.getElementById('btn-close-book').addEventListener('click', () => {
+            pagesView.classList.add('hidden');
+            navControls.classList.add('hidden');
+            coverView.classList.remove('hidden');
+            currentSpreadIndex = 0;
+            if (slideshowInterval) clearInterval(slideshowInterval);
+        });
+
+        document.getElementById('btn-next').addEventListener('click', () => {
+            const maxSpreads = Math.ceil(albumPages.length / 2) || 1;
+            if (currentSpreadIndex < maxSpreads) {
+                currentSpreadIndex++;
+                renderizarLibro();
+            }
+        });
+
+        document.getElementById('btn-prev').addEventListener('click', () => {
+            if (currentSpreadIndex > 1) {
+                currentSpreadIndex--;
+                renderizarLibro();
+            } else {
+                document.getElementById('btn-close-book').click();
+            }
+        });
+
+        function renderizarLibro() {
+            const leftIdx = (currentSpreadIndex - 1) * 2;
+            const rightIdx = leftIdx + 1;
+
+            document.getElementById('left-page-num').innerText = `Pág. ${leftIdx + 1}`;
+            document.getElementById('right-page-num').innerText = `Pág. ${rightIdx + 1}`;
+
+            document.getElementById('left-page-content').innerHTML = crearContenidoPagina(albumPages[leftIdx]);
+            document.getElementById('right-page-content').innerHTML = crearContenidoPagina(albumPages[rightIdx]);
+        }
+
+        function crearContenidoPagina(page) {
+            if (!page) {
                 return `
-                    <div class="h-full flex flex-col items-center justify-center text-center p-4 border-2 border-dashed border-rose-gold/30 rounded-xl m-2">
-                        <i class="fa-solid fa-heart-circle-plus text-3xl text-rose-gold/60 mb-2"></i>
-                        <p class="font-serif-title text-sm text-gray-500 mb-3">Página vacía</p>
-                        <button onclick="openPageModal(${index})" class="px-3 py-1.5 bg-rose-gold text-white text-xs rounded-full shadow hover:bg-rose-gold/80 transition-all">
-                            <i class="fa-solid fa-plus mr-1"></i> Subir Foto
-                        </button>
+                    <div class="text-center p-6 border-2 border-dashed border-amber-900/20 rounded-xl my-auto">
+                        <i class="fa-solid fa-heart-circle-plus text-3xl text-brand-pink/60 mb-2"></i>
+                        <p class="font-serif text-sm text-amber-900/60">Página disponible para agregar más recuerdos juntos</p>
                     </div>
                 `;
             }
-
-            const isLeft = side === 'left';
-            const tapeClass = isLeft ? 'photo-tape -top-2 left-4' : 'photo-tape-right photo-tape -top-2 right-4';
-            const fontClass = pageData.font || 'font-script';
 
             return `
-                <button onclick="openPageModal(${index})" title="Editar esta página" class="absolute top-2 ${isLeft ? 'right-2' : 'left-2'} z-30 w-7 h-7 rounded-full bg-charcoal/70 hover:bg-rose-gold text-white text-xs flex items-center justify-center transition-all shadow">
-                    <i class="fa-solid fa-pen"></i>
-                </button>
-
-                <div class="flex-1 flex items-center justify-center p-1 sm:p-3 relative min-h-0">
-                    <div class="relative bg-white p-2 sm:p-3 pb-6 sm:pb-8 shadow-md rounded border border-gray-200 max-h-full max-w-full flex flex-col items-center transition-transform hover:scale-[1.01]">
-                        <div class="${tapeClass}"></div>
-                        <img src="${pageData.photoUrl}" alt="Foto" class="max-h-[140px] sm:max-h-[220px] md:max-h-[250px] w-auto object-cover rounded shadow-inner" onerror="this.src='https://placehold.co/500x350/fdfbf7/121212?text=Cargando...'">
+                <div class="w-full flex flex-col items-center gap-4 my-auto">
+                    <div class="relative bg-white p-3 pb-8 shadow-xl rotate-1 hover:rotate-0 transition-transform duration-300 border border-amber-900/10 max-w-xs w-full">
+                        <div class="absolute -top-3 left-1/2 -translate-x-1/2 w-16 h-5 tape opacity-80"></div>
+                        <img src="${page.imageUrl}" class="w-full aspect-square object-cover rounded-sm">
                     </div>
-                </div>
-
-                <div class="my-2 sm:my-3 text-center px-2">
-                    <p class="${fontClass} text-base sm:text-xl md:text-2xl text-charcoal leading-relaxed">
-                        "${escapeHtml(pageData.caption)}"
+                    <p class="${page.font || 'font-handwriting'} text-xl md:text-2xl text-center text-amber-950 px-2">
+                        "${page.caption}"
                     </p>
-                </div>
-
-                <div class="text-[10px] sm:text-xs text-gray-400 font-serif-title text-center border-t border-gray-200/60 pt-1">
-                    - ${index + 1} -
                 </div>
             `;
         }
 
-        function nextPage() {
-            if (currentSpread < getTotalSpreads() - 1) {
-                currentSpread++;
-                renderAlbum();
-                updateNavigation();
-            }
-        }
+        // Modal y Formulario para Agregar Foto
+        const pageModal = document.getElementById('page-modal');
+        document.getElementById('btn-add-page').addEventListener('click', () => pageModal.classList.remove('hidden'));
+        document.getElementById('btn-close-page-modal').addEventListener('click', () => pageModal.classList.add('hidden'));
+        document.getElementById('btn-cancel-page').addEventListener('click', () => pageModal.classList.add('hidden'));
 
-        function prevPage() {
-            if (currentSpread > 0) {
-                currentSpread--;
-                renderAlbum();
-                updateNavigation();
-            }
-        }
-
-        function goToSpread(spreadIndex) {
-            currentSpread = spreadIndex;
-            renderAlbum();
-            updateNavigation();
-        }
-
-        function updateNavigation() {
-            const btnPrev = document.getElementById('btn-prev');
-            const btnNext = document.getElementById('btn-next');
-            const indicator = document.getElementById('page-indicator');
-
-            if (btnPrev) btnPrev.disabled = currentSpread === 0;
-            if (btnNext) btnNext.disabled = currentSpread >= getTotalSpreads() - 1;
-
-            if (indicator) {
-                if (currentSpread === 0) {
-                    indicator.textContent = "Portada";
-                } else {
-                    const pageL = (currentSpread - 1) * 2 + 1;
-                    const pageR = pageL + 1;
-                    indicator.textContent = `Páginas ${pageL} - ${pageR}`;
-                }
-            }
-        }
-
-        function renderDots() {
-            const dotsContainer = document.getElementById('page-dots');
-            if (!dotsContainer) return;
-            dotsContainer.innerHTML = '';
-            const total = getTotalSpreads();
-
-            for (let i = 0; i < total; i++) {
-                const dot = document.createElement('button');
-                dot.className = `w-2.5 h-2.5 rounded-full transition-all ${i === currentSpread ? 'bg-deep-pink w-5' : 'bg-rose-gold/40 hover:bg-rose-gold'}`;
-                dot.onclick = () => goToSpread(i);
-                dotsContainer.appendChild(dot);
-            }
-        }
-
-        function openCoverModal() {
-            document.getElementById('input-cover-title').value = albumData.cover.title || '';
-            document.getElementById('input-cover-names').value = albumData.cover.names || '';
-            document.getElementById('input-cover-date').value = albumData.cover.date || '';
-            document.getElementById('cover-loading').classList.add('hidden');
-            document.getElementById('cover-modal').classList.remove('hidden');
-        }
-
-        function closeCoverModal() {
-            document.getElementById('cover-modal').classList.add('hidden');
-        }
-
-        async function saveCoverDetails() {
-            const loading = document.getElementById('cover-loading');
-            if (loading) loading.classList.remove('hidden');
-
-            const title = document.getElementById('input-cover-title').value;
-            const names = document.getElementById('input-cover-names').value;
-            const date = document.getElementById('input-cover-date').value;
-
-            try {
-                albumData.cover = { title, names, date, photoUrl: FIXED_COVER_PHOTO };
-                saveLocalBackup();
-
-                if (!useLocalStorageFallback) {
-                    await db.collection("config").doc("cover").set({
-                        title: title,
-                        names: names,
-                        date: date,
-                        photoUrl: FIXED_COVER_PHOTO,
-                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                    }, { merge: true });
-                }
-
-                renderAlbum();
-                closeCoverModal();
-            } catch (err) {
-                console.error("Error al guardar portada:", err);
-                renderAlbum();
-                closeCoverModal();
-            } finally {
-                if (loading) loading.classList.add('hidden');
-            }
-        }
-
-        function readFileAsDataURL(file) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = () => resolve(reader.result);
-                reader.onerror = reject;
-                reader.readAsDataURL(file);
-            });
-        }
-
-        function openPageModal(index) {
-            editingPageIndex = index;
-            const isEditing = index !== null && albumData.pages[index];
-            const pageData = isEditing ? albumData.pages[index] : { caption: '', font: 'font-script' };
-
-            document.getElementById('modal-title-action').textContent = isEditing ? `Editar Página #${index + 1}` : "Subir Nuevo Recuerdo";
-            document.getElementById('input-page-text').value = pageData.caption || '';
-            document.getElementById('input-page-font').value = pageData.font || 'font-script';
-            document.getElementById('input-page-photo').value = '';
-            document.getElementById('page-loading').classList.add('hidden');
-
-            const btnDelete = document.getElementById('btn-delete-page');
-            if (isEditing) {
-                btnDelete.classList.remove('hidden');
-            } else {
-                btnDelete.classList.add('hidden');
-            }
-
-            document.getElementById('page-modal').classList.remove('hidden');
-        }
-
-        function closePageModal() {
-            document.getElementById('page-modal').classList.add('hidden');
-            editingPageIndex = null;
-        }
-
-        async function savePageDetails() {
-            const loading = document.getElementById('page-loading');
-            loading.classList.remove('hidden');
-
-            const caption = document.getElementById('input-page-text').value;
+        document.getElementById('form-add-page').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const file = document.getElementById('input-page-image').files[0];
+            const caption = document.getElementById('input-page-caption').value;
             const font = document.getElementById('input-page-font').value;
-            const fileInput = document.getElementById('input-page-photo');
 
-            const isEditing = editingPageIndex !== null && albumData.pages[editingPageIndex];
-            let photoUrl = isEditing ? albumData.pages[editingPageIndex].photoUrl : "https://images.unsplash.com/photo-1518199266791-5375a83190b7?q=80&w=800&auto=format&fit=crop";
+            if (!file) return;
 
-            try {
-                if (fileInput.files && fileInput.files[0]) {
-                    const file = fileInput.files[0];
-                    if (!useLocalStorageFallback) {
-                        try {
-                            const storageRef = storage.ref(`fotos/${Date.now()}_${file.name}`);
-                            await storageRef.put(file);
-                            photoUrl = await storageRef.getDownloadURL();
-                        } catch (e) {
-                            photoUrl = await readFileAsDataURL(file);
-                        }
-                    } else {
-                        photoUrl = await readFileAsDataURL(file);
-                    }
+            if (firebaseActive) {
+                try {
+                    const ref = storage.ref(`fotos/${Date.now()}_${file.name}`);
+                    await ref.put(file);
+                    const url = await ref.getDownloadURL();
+
+                    await db.collection("paginas").add({
+                        imageUrl: url,
+                        caption: caption,
+                        font: font,
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                } catch (err) {
+                    alert("Error al guardar en Firebase: " + err.message);
                 }
-
-                if (useLocalStorageFallback) {
-                    if (isEditing) {
-                        albumData.pages[editingPageIndex] = { ...albumData.pages[editingPageIndex], caption, font, photoUrl };
-                    } else {
-                        albumData.pages.push({ id: 'local_' + Date.now(), caption, font, photoUrl });
-                        triggerConfetti();
-                    }
-                    saveLocalBackup();
-                    renderAlbum();
-                    updateNavigation();
-                } else {
-                    if (isEditing) {
-                        const docId = albumData.pages[editingPageIndex].id;
-                        await db.collection("paginas").doc(docId).update({
-                            caption: caption,
-                            font: font,
-                            photoUrl: photoUrl,
-                            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                        });
-                    } else {
-                        await db.collection("paginas").add({
-                            caption: caption,
-                            font: font,
-                            photoUrl: photoUrl,
-                            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                        });
-                        triggerConfetti();
-                    }
-                }
-
-                closePageModal();
-            } catch (err) {
-                console.error("Error al guardar página:", err);
-                if (isEditing) {
-                    albumData.pages[editingPageIndex] = { ...albumData.pages[editingPageIndex], caption, font, photoUrl };
-                } else {
-                    albumData.pages.push({ id: 'local_' + Date.now(), caption, font, photoUrl });
-                }
-                saveLocalBackup();
-                renderAlbum();
-                updateNavigation();
-                closePageModal();
-            } finally {
-                loading.classList.add('hidden');
+            } else {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    albumPages.push({
+                        id: Date.now().toString(),
+                        imageUrl: event.target.result,
+                        caption: caption,
+                        font: font
+                    });
+                    localStorage.setItem('album_pages', JSON.stringify(albumPages));
+                    renderizarLibro();
+                };
+                reader.readAsDataURL(file);
             }
-        }
 
-        async function deleteCurrentPage() {
-            if (editingPageIndex === null || !albumData.pages[editingPageIndex]) return;
+            document.getElementById('form-add-page').reset();
+            pageModal.classList.add('hidden');
+        });
 
-            const docId = albumData.pages[editingPageIndex].id;
-            try {
-                if (!useLocalStorageFallback && !docId.startsWith('local_')) {
-                    await db.collection("paginas").doc(docId).delete();
-                } else {
-                    albumData.pages.splice(editingPageIndex, 1);
-                    saveLocalBackup();
-                    renderAlbum();
-                    updateNavigation();
-                }
-                closePageModal();
-            } catch (err) {
-                console.error("Error al borrar página:", err);
-                albumData.pages.splice(editingPageIndex, 1);
-                saveLocalBackup();
-                renderAlbum();
-                updateNavigation();
-                closePageModal();
-            }
-        }
-
-        function toggleSlideshow() {
-            const icon = document.getElementById('slideshow-icon');
-            const text = document.getElementById('slideshow-text');
-
+        // Presentación Automática
+        document.getElementById('btn-slideshow').addEventListener('click', () => {
             if (slideshowInterval) {
                 clearInterval(slideshowInterval);
                 slideshowInterval = null;
-                if (icon) icon.className = "fa-solid fa-play";
-                if (text) text.textContent = "Presentación";
+                alert("Presentación pausada");
             } else {
-                if (icon) icon.className = "fa-solid fa-pause";
-                if (text) text.textContent = "Pausar";
-                
+                if (currentSpreadIndex === 0) document.getElementById('btn-open-book').click();
                 slideshowInterval = setInterval(() => {
-                    if (currentSpread < getTotalSpreads() - 1) {
-                        nextPage();
+                    const maxSpreads = Math.ceil(albumPages.length / 2) || 1;
+                    if (currentSpreadIndex < maxSpreads) {
+                        currentSpreadIndex++;
+                        renderizarLibro();
                     } else {
-                        currentSpread = 0;
-                        renderAlbum();
-                        updateNavigation();
+                        currentSpreadIndex = 1;
+                        renderizarLibro();
                     }
                 }, 4000);
+                alert("Presentación iniciada (cambio cada 4 segundos)");
             }
-        }
-
-        function triggerConfetti() {
-            if (typeof confetti === 'function') {
-                confetti({
-                    particleCount: 50,
-                    spread: 70,
-                    origin: { y: 0.7 },
-                    colors: ['#B76E79', '#FF4D6D', '#FF8FA3', '#FFFFFF']
-                });
-            }
-        }
-
-        function escapeHtml(text) {
-            if (!text) return '';
-            return text
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;")
-                .replace(/"/g, "&quot;")
-                .replace(/'/g, "&#039;");
-        }
+        });
     </script>
 </body>
 </html>
