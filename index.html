@@ -125,9 +125,9 @@
                     <p class="font-handwriting text-xl md:text-2xl text-pink-200 italic">
                         Posdata: mi amor por vos es más grande que el universo
                     </p>
-                    <div id="music-upload-box" class="pt-2 hidden">
+                    <div id="music-upload-box" class="pt-2">
                         <label for="music-file-input" class="inline-flex items-center gap-2 px-4 py-2 bg-brand-pink/20 hover:bg-brand-pink/40 border border-brand-pink/50 text-brand-pink rounded-full cursor-pointer text-xs transition-all shadow-md hover:scale-105">
-                            <i class="fa-solid fa-cloud-arrow-up"></i> <span>🎵 Subir canción MP3</span>
+                            <i class="fa-solid fa-cloud-arrow-up"></i> <span id="music-label">🎵 Subir canción MP3</span>
                         </label>
                         <input type="file" id="music-file-input" accept="audio/*,audio/mp3" class="hidden">
                     </div>
@@ -237,28 +237,9 @@
                 firebaseActive = true;
             }
         } catch (e) {
-            console.warn("Firebase inactivo, operando en almacenamiento local.");
+            console.warn("Error con Firebase", e);
         }
 
-        // Sistema de almacenamiento persistente sin bloqueos
-        function guardarStorageLocal(key, value) {
-            try {
-                localStorage.setItem(key, JSON.stringify(value));
-            } catch(e) {
-                console.warn("LocalStorage lleno o deshabilitado.");
-            }
-        }
-
-        function obtenerStorageLocal(key) {
-            try {
-                const data = localStorage.getItem(key);
-                return data ? JSON.parse(data) : null;
-            } catch(e) {
-                return null;
-            }
-        }
-
-        // Compresión optimizada para móviles
         function comprimirImagenRapido(file, maxWidth = 650, quality = 0.6) {
             return new Promise((resolve) => {
                 const reader = new FileReader();
@@ -279,12 +260,14 @@
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(img, 0, 0, width, height);
 
-                        resolve(canvas.toDataURL('image/jpeg', quality));
+                        canvas.toBlob((blob) => {
+                            resolve(blob);
+                        }, 'image/jpeg', quality);
                     };
-                    img.onerror = () => resolve(e.target.result); // Fallback directo
+                    img.onerror = () => resolve(file);
                     img.src = e.target.result;
                 };
-                reader.onerror = () => resolve(null);
+                reader.onerror = () => resolve(file);
                 reader.readAsDataURL(file);
             });
         }
@@ -308,10 +291,7 @@
         const coverFileInput = document.getElementById('cover-file-input');
 
         window.addEventListener('DOMContentLoaded', () => {
-            cargarFotoPortada();
-            cargarMusica();
-            cargarPaginas();
-
+            escucharCambiosFirebase();
             document.body.addEventListener('click', iniciarAudioAlContacto, { once: true });
         });
 
@@ -324,21 +304,35 @@
             }
         }
 
-        // PORTADA
-        async function cargarFotoPortada() {
-            const localCover = obtenerStorageLocal('album_cover_url');
-            if (localCover) {
-                fijarFotoPortada(localCover);
-            }
+        // ESCUCHAR FIREBASE EN TIEMPO REAL
+        function escucharCambiosFirebase() {
+            if (!firebaseActive || !db) return;
 
-            if (firebaseActive && db) {
-                db.collection("config").doc("cover").get().then((doc) => {
-                    if (doc.exists && doc.data().url) {
-                        fijarFotoPortada(doc.data().url);
-                        guardarStorageLocal('album_cover_url', doc.data().url);
-                    }
-                }).catch(() => {});
-            }
+            // Foto Portada
+            db.collection("config").doc("cover").onSnapshot((doc) => {
+                if (doc.exists && doc.data().url) {
+                    fijarFotoPortada(doc.data().url);
+                }
+            });
+
+            // Música
+            db.collection("config").doc("music").onSnapshot((doc) => {
+                if (doc.exists && doc.data().url) {
+                    fijarCancion(doc.data().url);
+                }
+            });
+
+            // Páginas / Recuerdos
+            db.collection("paginas").orderBy("timestamp", "asc").onSnapshot((snapshot) => {
+                const netPages = [];
+                snapshot.forEach((doc) => {
+                    netPages.push({ id: doc.id, ...doc.data() });
+                });
+                albumPages = netPages;
+                if (currentSpreadIndex > 0) {
+                    renderizarLibro();
+                }
+            });
         }
 
         function fijarFotoPortada(url) {
@@ -353,74 +347,41 @@
             const file = e.target.files[0];
             if (!file) return;
 
-            const compressedBase64 = await comprimirImagenRapido(file, 700, 0.7);
-            if (compressedBase64) {
-                fijarFotoPortada(compressedBase64);
-                guardarStorageLocal('album_cover_url', compressedBase64);
-            }
+            const compressedBlob = await comprimirImagenRapido(file, 700, 0.7);
 
             if (firebaseActive && storage) {
                 try {
-                    const ref = storage.ref(`portada/foto_portada_fija`);
-                    await ref.put(file);
+                    const ref = storage.ref(`portada/foto_portada_fija.jpg`);
+                    await ref.put(compressedBlob);
                     const firebaseUrl = await ref.getDownloadURL();
                     await db.collection("config").doc("cover").set({ url: firebaseUrl });
-                    guardarStorageLocal('album_cover_url', firebaseUrl);
-                } catch (err) {}
+                } catch (err) {
+                    alert("Error al subir portada: " + err.message);
+                }
             }
         });
 
-        // MÚSICA
-        async function cargarMusica() {
-            const localMusic = obtenerStorageLocal('album_music_url');
-            if (localMusic) {
-                fijarCancion(localMusic);
-            } else {
-                musicUploadBox.classList.remove('hidden');
-            }
-
-            if (firebaseActive && db) {
-                db.collection("config").doc("music").get().then((doc) => {
-                    if (doc.exists && doc.data().url) {
-                        fijarCancion(doc.data().url);
-                        guardarStorageLocal('album_music_url', doc.data().url);
-                    }
-                }).catch(() => {});
-            }
-        }
-
         function fijarCancion(url) {
             bgMusic.src = url;
-            musicUploadBox.style.display = 'none';
+            document.getElementById('music-label').innerText = "🎵 Canción guardada";
         }
 
-        musicFileInput.addEventListener('change', (e) => {
+        musicFileInput.addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (!file) return;
 
-            const reader = new FileReader();
-            reader.onload = async (event) => {
-                const audioUrl = event.target.result;
-
-                fijarCancion(audioUrl);
-                guardarStorageLocal('album_music_url', audioUrl);
-
-                bgMusic.play().then(() => {
-                    isMuted = false;
-                    actualizarIconoMusica();
-                }).catch(() => {});
-
-                if (firebaseActive && storage) {
-                    try {
-                        const ref = storage.ref(`musica/cancion_fija.mp3`);
-                        await ref.put(file);
-                        const firebaseUrl = await ref.getDownloadURL();
-                        await db.collection("config").doc("music").set({ url: firebaseUrl });
-                        guardarStorageLocal('album_music_url', firebaseUrl);
-                    } catch (err) {}
+            if (firebaseActive && storage) {
+                try {
+                    document.getElementById('music-label').innerText = "Cargando música...";
+                    const ref = storage.ref(`musica/cancion_fija.mp3`);
+                    await ref.put(file);
+                    const firebaseUrl = await ref.getDownloadURL();
+                    await db.collection("config").doc("music").set({ url: firebaseUrl });
+                } catch (err) {
+                    alert("Error al subir música: " + err.message);
+                    document.getElementById('music-label').innerText = "🎵 Subir canción MP3";
                 }
-            };
-            reader.readAsDataURL(file);
+            }
         });
 
         btnMuteToggle.addEventListener('click', () => {
@@ -444,28 +405,6 @@
         }
 
         // PÁGINAS Y LIBRO
-        function cargarPaginas() {
-            const localPages = obtenerStorageLocal('album_pages_list') || [];
-            if (localPages.length > 0) {
-                albumPages = localPages.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
-                if (currentSpreadIndex > 0) renderizarLibro();
-            }
-
-            if (firebaseActive && db) {
-                db.collection("paginas").orderBy("timestamp", "asc").onSnapshot((snapshot) => {
-                    const netPages = [];
-                    snapshot.forEach((doc) => {
-                        netPages.push({ id: doc.id, ...doc.data() });
-                    });
-                    if (netPages.length > 0) {
-                        albumPages = netPages;
-                        guardarStorageLocal('album_pages_list', albumPages);
-                        if (currentSpreadIndex > 0) renderizarLibro();
-                    }
-                }, () => {});
-            }
-        }
-
         document.getElementById('btn-open-book').addEventListener('click', () => {
             coverView.classList.add('hidden');
             pagesView.classList.remove('hidden');
@@ -555,7 +494,7 @@
             e.preventDefault();
             const btnSave = document.getElementById('btn-save-page');
             btnSave.disabled = true;
-            btnSave.innerText = "Procesando...";
+            btnSave.innerText = "Subiendo foto...";
 
             const fileInput = document.getElementById('input-page-image');
             const captionInput = document.getElementById('input-page-caption');
@@ -573,55 +512,28 @@
             }
 
             try {
-                // Compresión ultra rápida
-                const compressedImage = await comprimirImagenRapido(file, 650, 0.6);
+                const compressedBlob = await comprimirImagenRapido(file, 650, 0.6);
 
-                if (!compressedImage) {
-                    throw new Error("No se pudo procesar la imagen.");
-                }
-
-                const newPage = {
-                    id: Date.now().toString(),
-                    imageUrl: compressedImage,
-                    caption: caption,
-                    font: font,
-                    timestamp: Date.now()
-                };
-
-                // Actualizar pantalla inmediatamente
-                albumPages.push(newPage);
-                guardarStorageLocal('album_pages_list', albumPages);
-
-                if (currentSpreadIndex === 0) {
-                    currentSpreadIndex = Math.ceil(albumPages.length / 2) || 1;
-                }
-                
-                renderizarLibro();
-
-                // Cierre de ventana y reseteo
-                document.getElementById('form-add-page').reset();
-                pageModal.classList.add('hidden');
-
-                // Subida en segundo plano si Firebase está disponible
                 if (firebaseActive && storage && db) {
-                    (async () => {
-                        try {
-                            const ref = storage.ref(`fotos/${Date.now()}_${file.name}`);
-                            await ref.put(file);
-                            const url = await ref.getDownloadURL();
+                    const ref = storage.ref(`fotos/${Date.now()}_recuerdo.jpg`);
+                    await ref.put(compressedBlob);
+                    const url = await ref.getDownloadURL();
 
-                            await db.collection("paginas").add({
-                                imageUrl: url,
-                                caption: caption,
-                                font: font,
-                                timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                            });
-                        } catch (e) {}
-                    })();
+                    await db.collection("paginas").add({
+                        imageUrl: url,
+                        caption: caption,
+                        font: font,
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+
+                    document.getElementById('form-add-page').reset();
+                    pageModal.classList.add('hidden');
+                } else {
+                    alert("No hay conexión con la base de datos.");
                 }
 
             } catch (error) {
-                alert("Hubo un detalle al guardar: " + error.message);
+                alert("Hubo un error al guardar: " + error.message);
             } finally {
                 btnSave.disabled = false;
                 btnSave.innerText = "Guardar Recuerdo";
